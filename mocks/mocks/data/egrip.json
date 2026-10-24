@@ -1,0 +1,192 @@
+{
+  "990001000164": {
+    "inn": "990001000164",
+    "fullName": "Кузнецова Елена Андреевна",
+    "status": "ACTIVE",
+    "registrationDate": "2022-10-01",
+    "terminationDate": null,
+    "okvedMain": {
+      "code": "13.92",
+      "name": "Производство готовых текстильных изделий, кроме одежды"
+    },
+    "okvedExtra": [],
+    "region": "Санкт-Петербург"
+  },
+  "990001000238": {
+    "inn": "990001000238",
+    "fullName": "Смирнов Алексей Викторович",
+    "status": "ACTIVE",
+    "registrationDate": "2023-10-01",
+    "terminationDate": null,
+    "okvedMain": {
+      "code": "45.20",
+      "name": "Техническое обслуживание и ремонт автотранспортных средств"
+    },
+    "okvedExtra": [],
+    "region": "Казань"
+  },
+  "990001000301": {
+    "inn": "990001000301",
+    "fullName": "Белова Надежда Игоревна",
+    "status": "ACTIVE",
+    "registrationDate": "2022-10-01",
+    "terminationDate": null,
+    "okvedMain": {
+      "code": "47.76",
+      "name": "Торговля розничная цветами и другими растениями, семенами и удобрениями в специализированных магазинах"
+    },
+    "okvedExtra": [],
+    "region": "Краснодар"
+  },
+  "990001000485": {
+    "inn": "990001000485",
+    "fullName": "Ковалёв Михаил Олегович",
+    "status": "ACTIVE",
+    "registrationDate": "2022-10-01",
+    "terminationDate": null,
+    "okvedMain": {
+      "code": "13.92",
+      "name": "Производство готовых текстильных изделий, кроме одежды"
+    },
+    "okvedExtra": [],
+    "region": "Москва"
+  },
+  "990001000559": {
+    "_notIp": true,
+    "_comment": "Личный ИНН, ИП не зарегистрирован → 404 NOT_IP"
+  },
+  "990001000622": {
+    "_notIp": true,
+    "_comment": "Личный ИНН, ИП не зарегистрирован → 404 NOT_IP"
+  },
+  "990001000703": {
+    "inn": "990001000703",
+    "fullName": "Соловьёв Пётр Николаевич",
+    "status": "ACTIVE",
+    "registrationDate": "2021-10-01",
+    "terminationDate": null,
+    "okvedMain": {
+      "code": "45.20",
+      "name": "Техническое обслуживание и ремонт автотранспортных средств"
+    },
+    "okvedExtra": [],
+    "region": "Самара"
+  },
+  "990001000870": {
+    "inn": "990001000870",
+    "fullName": "Сидоров Артём Павлович",
+    "status": "ACTIVE",
+    "registrationDate": "2022-10-01",
+    "terminationDate": null,
+    "okvedMain": {
+      "code": "13.92",
+      "name": "Производство готовых текстильных изделий, кроме одежды"
+    },
+    "okvedExtra": [],
+    "region": "Тверь"
+  },
+  "990001000943": {
+    "inn": "990001000943",
+    "fullName": "Васильева Ольга Петровна",
+    "status": "ACTIVE",
+    "registrationDate": "2022-10-01",
+    "terminationDate": null,
+    "okvedMain": {
+      "code": "13.92",
+      "name": "Производство готовых текстильных изделий, кроме одежды"
+    },
+    "okvedExtra": [],
+    "region": "Ярославль"
+  },
+  "990001001048": {
+    "inn": "990001001048",
+    "fullName": "Фёдорова Дарья Александровна",
+    "status": "ACTIVE",
+    "registrationDate": "2022-10-01",
+    "terminationDate": null,
+    "okvedMain": {
+      "code": "10.71",
+      "name": "Производство хлеба и мучных кондитерских изделий, тортов и пирожных недлительного хранения"
+    },
+    "okvedExtra": [],
+    "region": "Пермь"
+  },
+  "990001010596": {
+    "inn": "990001010596",
+    "fullName": "Гусев Роман Ильич",
+    "status": "ACTIVE",
+    "registrationDate": "2026-08-01",
+    "terminationDate": null,
+    "okvedMain": {
+      "code": "45.20",
+      "name": "Техническое обслуживание и ремонт автотранспортных средств"
+    },
+    "okvedExtra": [],
+    "region": "Тула"
+  },
+  "990001011222": {
+    "inn": "990001011222",
+    "fullName": "Лебедева Анна Сергеевна",
+    "status": "ACTIVE",
+    "registrationDate": "2026-02-01",
+    "terminationDate": null,
+    "okvedMain": {
+      "code": "47.76",
+      "name": "Торговля розничная цветами и другими растениями, семенами и удобрениями в специализированных магазинах"
+    },
+    "okvedExtra": [],
+    "region": "Сочи"
+  },
+  "990001011938": {
+    "inn": "990001011938",
+    "fullName": "Морозов Денис Андреевич",
+    "status": "ACTIVE",
+    "registrationDate": "2026-04-01",
+    "terminationDate": null,
+    "okvedMain": {
+      "code": "45.20",
+      "name": "Техническое обслуживание и ремонт автотранспортных средств"
+    },
+    "okvedExtra": [],
+    "region": "Воронеж"
+  },
+  "990001012674": {
+    "inn": "990001012674",
+    "fullName": "Никитина Ирина Олеговна",
+    "status": "ACTIVE",
+    "registrationDate": "2022-10-01",
+    "terminationDate": null,
+    "okvedMain": {
+      "code": "13.92",
+      "name": "Производство готовых текстильных изделий, кроме одежды"
+    },
+    "okvedExtra": [],
+    "region": "Иваново"
+  },
+  "990001013300": {
+    "inn": "990001013300",
+    "fullName": "Захаров Олег Иванович",
+    "status": "ACTIVE",
+    "registrationDate": "2022-10-01",
+    "terminationDate": null,
+    "okvedMain": {
+      "code": "13.92",
+      "name": "Производство готовых текстильных изделий, кроме одежды"
+    },
+    "okvedExtra": [],
+    "region": "Владимир"
+  },
+  "990001014047": {
+    "inn": "990001014047",
+    "fullName": "Павлова Светлана Юрьевна",
+    "status": "ACTIVE",
+    "registrationDate": "2022-10-01",
+    "terminationDate": null,
+    "okvedMain": {
+      "code": "13.92",
+      "name": "Производство готовых текстильных изделий, кроме одежды"
+    },
+    "okvedExtra": [],
+    "region": "Рязань"
+  }
+}
