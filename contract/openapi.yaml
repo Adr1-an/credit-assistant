@@ -1,0 +1,1383 @@
+openapi: 3.0.3
+info:
+  title: Умный финансовый навигатор для ИП — API
+  version: 0.9.0
+  description: |
+    Запросы между сайтом (React) и сервером (Python, FastAPI).
+    Общие правила — в README.md контракта. Деньги — целые рубли. Входа нет:
+    клиент работает с заявкой по id, сотрудник — через /api/staff.
+    x-priority у запроса: must — обязательно, should — желательно, could — если успеем.
+servers:
+  - url: /api
+tags:
+  - name: system
+  - name: application
+    description: Воронка клиента
+  - name: goals
+    description: Цель и уточняющие вопросы (ИИ-диалог или форма)
+  - name: offer
+    description: Предложение, договор, подпись
+  - name: after
+    description: После выдачи
+  - name: staff
+    description: Кабинет сотрудника
+  - name: demo
+    description: Помощь для демо и проверки жюри
+
+paths:
+  /health:
+    get:
+      tags: [system]
+      x-priority: must
+      summary: Сервер жив, доступен ли ИИ
+      operationId: getHealth
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, aiAvailable]
+                properties:
+                  status: { type: string, enum: [ok] }
+                  aiAvailable: { type: boolean, description: 'false — сайт показывает форму вместо чата' }
+
+  /applications:
+    post:
+      tags: [application]
+      x-priority: must
+      summary: Шаг 1. Создать заявку по паспорту и ИНН
+      description: |
+        Сервер проверяет формат паспорта и ИНН (12 цифр, контрольная сумма).
+        ИНН может отсутствовать, если бизнеса ещё нет (hasBusiness = false).
+        Внешние проверки здесь НЕ запускаются — только после согласия.
+
+        Повторная заявка. Если у этого человека уже есть открытая заявка
+        (статус не ISSUED и не REJECTED), новая НЕ создаётся: сервер отвечает 200
+        и возвращает существующую. Совпадение ищется по ИНН, а если ИНН не указан —
+        по серии и номеру паспорта. Сайт показывает: «У вас есть заявка от {createdAt}.
+        Продолжить?» и ведёт клиента по её nextAction.
+      operationId: createApplication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateApplicationRequest' }
+      responses:
+        '201':
+          description: Заявка создана, статус DRAFT
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '200':
+          description: Новая заявка не создана — возвращается уже открытая заявка этого человека
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '400': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [application]
+      x-priority: must
+      summary: Заявка целиком (для клиента, без баллов)
+      operationId: getApplication
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/consent:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [application]
+      x-priority: must
+      summary: Шаг 2. Согласие на проверку и запуск проверок
+      description: |
+        Сохраняет согласие и сразу запускает проверки (шаг 3).
+        Проверки идут синхронно, ответ приходит с их результатом.
+        Промежуточных событий нет: пока ждём ответ, сайт показывает индикатор
+        ожидания, затем — настоящие результаты из checks[] по одному (можно с
+        анимацией). Выдуманный пошаговый прогресс не показывать.
+        Если заглушка не ответила — 503 SERVICE_UNAVAILABLE, заявка остаётся в CHECKING,
+        можно повторить через POST /applications/{id}/checks.
+        При hasBusiness=true отсутствие ИП в ЕГРИП (NOT_IP / NOT_FOUND) означает
+        422 INN_NOT_FOUND / NOT_IP и возврат в DRAFT.
+        При hasBusiness=false ответ ЕГРИП 404 NOT_IP — ожидаемый результат
+        («пока нет действующего ИП»), не ошибка заявки и не STOP.
+        Для полного набора шести проверок требуется личный ИНН даже без ИП.
+        При его отсутствии consent возвращает 422 VALIDATION_ERROR с
+        details.missingField=inn, заявка остаётся в DRAFT; в текущем API
+        клиент создаёт новую заявку с ИНН. Другие проверки не запускаются.
+        Паспортная заглушка по варианту Б сравнивает ФИО, дату рождения и
+        выдачи с независимой синтетической записью; расхождение — MANUAL,
+        подтверждённо недействительный документ — STOP.
+      operationId: giveConsent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [agreed]
+              properties:
+                agreed: { type: boolean, enum: [true] }
+      responses:
+        '200':
+          description: Проверки выполнены. Статус COLLECTING или REJECTED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/checks:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [application]
+      x-priority: must
+      summary: Шаг 3. Повторить проверки (если сервис не ответил)
+      operationId: retryChecks
+      responses:
+        '200':
+          description: Проверки выполнены
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '409': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/statement:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [application]
+      x-priority: must
+      summary: Шаг 4. Загрузить выписку из другого банка
+      description: Формат файла — в mocks-contract.md (CSV). Сервер разбирает его и возвращает сводку.
+      operationId: uploadStatement
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200':
+          description: Выписка разобрана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StatementSummary' }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/questionnaire:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [application]
+      x-priority: must
+      summary: Шаг 4. Анкета вместо выписки
+      description: Сумма будет ограничена или заявка уйдёт к сотруднику (правила — от БА).
+      operationId: submitQuestionnaire
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Questionnaire' }
+      responses:
+        '200':
+          description: Сохранено
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /question-sets:
+    get:
+      tags: [goals]
+      x-priority: must
+      summary: Список уточняющих вопросов по целям
+      description: Отдаёт содержимое question-sets.json. По нему строится форма без ИИ.
+      operationId: getQuestionSets
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuestionSets' }
+
+  /applications/{id}/dialog:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [goals]
+      x-priority: should
+      summary: История ИИ-диалога
+      operationId: getDialog
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DialogState' }
+    post:
+      tags: [goals]
+      x-priority: should
+      summary: Шаги 5–6. Сообщение клиента в ИИ-диалог
+      description: |
+        Сервер передаёт сообщение ИИ (llm-contract.md, задача dialog_step) и возвращает
+        следующий вопрос или сводку. Когда state = SUMMARY, сайт показывает сводку
+        и кнопку «Всё верно» → PUT /applications/{id}/goals с collected.
+        Если ИИ недоступен — 503 AI_UNAVAILABLE, сайт переключается на форму.
+        Когда state = ESCALATED (цель не понята после 2 попыток), сайт показывает
+        кнопки с готовыми целями (goals[].title из GET /question-sets) и дальше
+        работает как форма. Если ни одна цель не подошла — кнопка
+        «Передать сотруднику» → POST /applications/{id}/handoff.
+      operationId: sendDialogMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 2000 }
+      responses:
+        '200':
+          description: Ответ ассистента
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DialogState' }
+        '409': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/handoff:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [goals]
+      x-priority: should
+      summary: Передать заявку сотруднику (цель не удалось определить)
+      description: |
+        Доступно только в COLLECTING. Переводит заявку в MANUAL_REVIEW без сметы и баллов.
+        В истории — запись actor=CLIENT, comment = причина. Сотрудник видит в карточке
+        handoff, текст клиента и историю диалога; обычно делает REQUEST_INFO
+        или сам задаёт условия через CHANGE_TERMS (newTerms обязательны).
+        APPROVE без newTerms для такой заявки — 400 VALIDATION_ERROR.
+      operationId: handoffToStaff
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, enum: [GOAL_UNCLEAR] }
+                text: { type: string, maxLength: 2000, description: 'Что клиент хочет, своими словами (необязательно)' }
+      responses:
+        '200':
+          description: Заявка у сотрудника, статус MANUAL_REVIEW
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/goals:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    put:
+      tags: [goals]
+      x-priority: must
+      summary: Шаги 5–6. Сохранить цели и ответы (из формы или подтверждённой сводки ИИ)
+      description: |
+        Один запрос и для формы, и для ИИ. Сервер проверяет ответы по question-sets.json
+        (типы, обязательные поля, разумные границы чисел) и строит смету.
+      operationId: saveGoals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GoalsData' }
+      responses:
+        '200':
+          description: Сохранено, смета построена
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Estimate' }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /okved:
+    get:
+      tags: [goals]
+      x-priority: must
+      summary: Поиск ОКВЭД по названию или коду (для «бизнеса нет» без ИИ)
+      operationId: searchOkved
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema: { type: string, minLength: 2 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Okved' }
+
+  /okved/suggest:
+    post:
+      tags: [goals]
+      x-priority: could
+      summary: ИИ подсказывает ОКВЭД по описанию бизнеса
+      description: Возвращает только коды из справочника. Клиент обязательно подтверждает выбор.
+      operationId: suggestOkved
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 500 }
+      responses:
+        '200':
+          description: До 3 подсказок
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 3
+                items: { $ref: '#/components/schemas/Okved' }
+        '503': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/estimate:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [application]
+      x-priority: must
+      summary: Шаг 7. Смета
+      operationId: getEstimate
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Estimate' }
+        '404': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [application]
+      x-priority: must
+      summary: Шаг 7. Клиент правит смету
+      description: Клиент может изменить сумму строки или исключить её. Продукт под строку подбирает сервер.
+      operationId: updateEstimate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [id]
+                    properties:
+                      id: { type: string }
+                      amount: { type: integer, minimum: 0 }
+                      excluded: { type: boolean }
+      responses:
+        '200':
+          description: Смета пересчитана
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Estimate' }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/submit:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [application]
+      x-priority: must
+      summary: Шаг 8. Отправить заявку на решение
+      description: Сервер считает баллы и зону и переводит заявку в OFFER_READY, MANUAL_REVIEW, INFO_REQUESTED или REJECTED.
+      operationId: submitApplication
+      responses:
+        '200':
+          description: Решение принято или заявка у сотрудника
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/info-response:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [application]
+      x-priority: must
+      summary: Ответ клиента на запрос данных
+      description: Можно приложить файл (например, новую выписку). Заявка возвращается в MANUAL_REVIEW.
+      operationId: answerInfoRequest
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 2000 }
+                file: { type: string, format: binary }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/offers:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [offer]
+      x-priority: must
+      summary: Шаг 9. Предложения
+      operationId: getOffers
+      responses:
+        '200':
+          description: Главное предложение и до 2 запасных
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Offer' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/offers/{offerId}/select:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+      - name: offerId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [offer]
+      x-priority: must
+      summary: Клиент выбрал предложение
+      operationId: selectOffer
+      responses:
+        '200':
+          description: Статус SIGNING
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/contract:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [offer]
+      x-priority: must
+      summary: Шаг 10. Договор с пояснениями
+      operationId: getContract
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Contract' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/contract/ask:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [offer]
+      x-priority: should
+      summary: «Что будет, если…» — вопрос по договору
+      description: |
+        Если questionId из готового списка (Contract.faq) — ответ без ИИ.
+        Если свой текст — отвечает ИИ (задача explain_contract). ИИ недоступен — 503 AI_UNAVAILABLE.
+      operationId: askContract
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                questionId: { type: string }
+                text: { type: string, maxLength: 500 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [answer, source]
+                properties:
+                  answer: { type: string }
+                  source: { type: string, enum: [FAQ, AI] }
+                  disclaimer: { type: string, example: 'Пояснение справочное и не заменяет юридическую консультацию.' }
+        '503': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/sign/code:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [offer]
+      x-priority: must
+      summary: Получить код подписи (показывается на экране, без SMS)
+      operationId: requestSignCode
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [code, expiresAt]
+                properties:
+                  code: { type: string, pattern: '^[0-9]{6}$' }
+                  expiresAt: { type: string, format: date-time }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/sign:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [offer]
+      x-priority: must
+      summary: Подписать договор кодом
+      operationId: signContract
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, understood]
+              properties:
+                code: { type: string, pattern: '^[0-9]{6}$' }
+                understood: { type: boolean, enum: [true], description: 'Клиент отметил «Понятно» у сводки из трёх пунктов' }
+      responses:
+        '200':
+          description: Статус ISSUED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Application' }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/schedule:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [after]
+      x-priority: must
+      summary: График платежей после выдачи
+      operationId: getSchedule
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Schedule' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /applications/{id}/notifications:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [after]
+      x-priority: should
+      summary: Уведомления (раннее предупреждение, рост лимита)
+      operationId: getNotifications
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Notification' }
+
+  /applications/{id}/notifications/{notificationId}/choose:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+      - name: notificationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [after]
+      x-priority: should
+      summary: Клиент выбрал вариант в уведомлении
+      description: Крупные изменения графика (RESTRUCTURE) уходят на подтверждение сотруднику.
+      operationId: chooseNotificationOption
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [option]
+              properties:
+                option: { $ref: '#/components/schemas/NotificationOption' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Schedule' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /staff/applications:
+    get:
+      tags: [staff]
+      x-priority: must
+      summary: Список всех заявок (спорные сверху)
+      operationId: listStaffApplications
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/ApplicationStatus' }
+        - name: zone
+          in: query
+          schema: { $ref: '#/components/schemas/Zone' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/StaffApplicationListItem' }
+
+  /staff/applications/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [staff]
+      x-priority: must
+      summary: Карточка заявки для сотрудника
+      operationId: getStaffApplication
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StaffApplicationCard' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /staff/applications/{id}/decision:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [staff]
+      x-priority: must
+      summary: Решение сотрудника
+      operationId: makeStaffDecision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StaffDecision' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StaffApplicationCard' }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /demo/clients:
+    get:
+      tags: [demo]
+      x-priority: must
+      summary: Тестовые клиенты (для жюри)
+      description: Паспорт, ИНН и какой сценарий показывает каждый. Данные синтетические, из tests/demo-clients.json.
+      operationId: listDemoClients
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/DemoClient' }
+
+  /demo/statements/{inn}:
+    parameters:
+      - name: inn
+        in: path
+        required: true
+        schema: { type: string, pattern: '^[0-9]{12}$' }
+    get:
+      tags: [demo]
+      x-priority: must
+      summary: Скачать тестовую выписку для ИНН
+      operationId: downloadDemoStatement
+      responses:
+        '200':
+          description: CSV-файл выписки
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /demo/applications/{id}/advance-month:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [demo]
+      x-priority: should
+      summary: «Перемотать месяц» после выдачи
+      operationId: advanceMonth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scenario]
+              properties:
+                scenario: { type: string, enum: [NORMAL, REVENUE_DROP, GROWTH] }
+      responses:
+        '200':
+          description: Новые уведомления, если есть
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Notification' }
+        '409': { $ref: '#/components/responses/Error' }
+
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Error:
+      description: Ошибка
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { $ref: '#/components/schemas/ErrorCode' }
+        message: { type: string, description: 'Текст для клиента, простыми словами' }
+        details: { type: object, additionalProperties: true }
+
+    ErrorCode:
+      type: string
+      enum:
+        - VALIDATION_ERROR      # 400 неверные данные в запросе
+        - INN_INVALID           # 400 ИНН не 12 цифр или неверная контрольная сумма
+        - PASSPORT_INVALID      # 400 неверный формат паспорта
+        - STATEMENT_UNREADABLE  # 400 выписку не удалось прочитать
+        - CODE_INVALID          # 400 неверный код подписи
+        - CODE_EXPIRED          # 400 код подписи устарел
+        - NOT_FOUND             # 404
+        - INN_NOT_FOUND         # 422 ИП с таким ИНН не найден в реестре
+        - NOT_IP                # 422 ИНН принадлежит не ИП (например, ООО)
+        - INVALID_STATUS        # 409 действие недоступно в текущем статусе
+        - CONSENT_REQUIRED      # 409 нет согласия
+        - SERVICE_UNAVAILABLE   # 503 заглушка внешнего сервиса не ответила
+        - AI_UNAVAILABLE        # 503 ИИ недоступен — переключиться на форму
+
+    ApplicationStatus:
+      type: string
+      enum: [DRAFT, CHECKING, COLLECTING, MANUAL_REVIEW, INFO_REQUESTED, OFFER_READY, SIGNING, ISSUED, REJECTED]
+
+    NextAction:
+      type: string
+      enum: [GIVE_CONSENT, WAIT, RETRY_CHECKS, UPLOAD_STATEMENT, SET_GOALS, REVIEW_ESTIMATE, SUBMIT, ANSWER_INFO_REQUEST, CHOOSE_OFFER, SIGN, NONE]
+
+    Zone:
+      type: string
+      enum: [GREEN, YELLOW, RED]
+
+    GoalType:
+      type: string
+      enum: [EQUIPMENT, NEW_LOCATION, INVENTORY, CASH_GAP, TENDER, MARKETING, START_BUSINESS, OTHER]
+
+    ProductType:
+      type: string
+      enum: [LEASING, INVESTMENT_LOAN, CREDIT_LINE, OVERDRAFT, BANK_GUARANTEE, PARTNER_SERVICE, REVENUE_BASED_LOAN, STARTER_LOAN]
+
+    CostCategory:
+      type: string
+      description: Кубики расходов из концепции
+      enum: [EQUIPMENT, PREMISES, INVENTORY, STAFF, MARKETING, TENDER, BUFFER]
+
+    Passport:
+      type: object
+      required: [lastName, firstName, birthDate, series, number, issueDate]
+      properties:
+        lastName: { type: string }
+        firstName: { type: string }
+        middleName: { type: string }
+        birthDate: { type: string, format: date }
+        series: { type: string, pattern: '^[0-9]{4}$' }
+        number: { type: string, pattern: '^[0-9]{6}$' }
+        issueDate: { type: string, format: date }
+
+    CreateApplicationRequest:
+      type: object
+      required: [passport, hasBusiness]
+      properties:
+        passport: { $ref: '#/components/schemas/Passport' }
+        hasBusiness: { type: boolean, description: 'false — человек хочет открыть бизнес' }
+        inn:
+          type: string
+          pattern: '^[0-9]{12}$'
+          description: |
+            Личный ИНН физлица (12 цифр). Обязателен при hasBusiness=true.
+            При hasBusiness=false можно создать DRAFT без ИНН, но для consent
+            и полного набора внешних проверок личный ИНН необходим.
+
+    CheckResult:
+      type: object
+      required: [source, state, basket]
+      properties:
+        source:
+          type: string
+          enum: [FNS_EGRIP, FNS_TAX_DEBT, BKI, FSSP, BANKRUPTCY, PASSPORT]
+        state: { type: string, enum: [OK, WARNING, FAIL, ERROR], description: 'ERROR — сервис не ответил' }
+        basket:
+          type: string
+          enum: [NONE, STOP, MINUS, MANUAL]
+          description: 'Корзина из концепции. Правила — scoring-model-v1. При state = ERROR (сервис не ответил) basket = NONE и в решении не участвует'
+        code: { type: string, description: 'Необязательный код конкретной проверки (например, PASSPORT_HOLDER_MISMATCH)' }
+        clientText: { type: string, description: 'Что показать клиенту, без подробностей' }
+
+    BusinessInfo:
+      type: object
+      description: Данные из реестра ФНС
+      properties:
+        okved: { $ref: '#/components/schemas/Okved' }
+        registrationDate: { type: string, format: date }
+        ageMonths: { type: integer }
+        region: { type: string }
+
+    Application:
+      type: object
+      description: Заявка в том виде, в каком её видит клиент. Баллов здесь нет.
+      required: [id, status, statusText, nextAction, hasBusiness, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/ApplicationStatus' }
+        statusText: { type: string, description: 'Текст из statuses.md' }
+        nextAction: { $ref: '#/components/schemas/NextAction' }
+        hasBusiness: { type: boolean }
+        applicantName: { type: string, example: 'Иванова Мария' }
+        inn: { type: string }
+        business: { $ref: '#/components/schemas/BusinessInfo' }
+        checks:
+          type: array
+          items: { $ref: '#/components/schemas/CheckResult' }
+        hasStatement: { type: boolean }
+        hasQuestionnaire: { type: boolean }
+        goals:
+          type: array
+          items: { $ref: '#/components/schemas/GoalType' }
+        reviewDeadline: { type: string, format: date-time, description: 'Для MANUAL_REVIEW: «ответ до …»' }
+        infoRequest:
+          type: object
+          description: Для INFO_REQUESTED
+          properties:
+            text: { type: string }
+            requestedBy: { type: string, enum: [SYSTEM, STAFF] }
+        rejection:
+          type: object
+          description: Для REJECTED. Без внутренней формулы банка
+          properties:
+            text: { type: string }
+            advice:
+              type: array
+              maxItems: 3
+              items: { type: string }
+            retryAfterMonths: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    StatementSummary:
+      type: object
+      required: [periodFrom, periodTo, monthsCovered, avgMonthlyIncome, avgMonthlyExpense]
+      properties:
+        periodFrom: { type: string, format: date }
+        periodTo: { type: string, format: date }
+        monthsCovered: { type: integer, minimum: 0, maximum: 12, description: 'Количество месяцев с хотя бы одной корректной операцией в последних 12 завершённых календарных месяцах; не равно span между датами' }
+        avgMonthlyIncome: { type: integer, description: 'Среднее по присутствующим завершённым месяцам, только IN категорий CUSTOMER и ACQUIRING; OTHER_IN исключается' }
+        avgMonthlyExpense: { type: integer }
+        monthly:
+          type: array
+          items:
+            type: object
+            required: [month, income, expense]
+            properties:
+              month: { type: string, pattern: '^[0-9]{4}-[0-9]{2}$' }
+              income: { type: integer }
+              expense: { type: integer }
+        expenseByCategory:
+          type: object
+          description: 'Ключ — категория из mocks-contract.md (RENT, SALARY, MATERIALS, TAXES, LOAN_PAYMENTS, OTHER)'
+          additionalProperties: { type: integer }
+        topCustomers:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              inn: { type: string }
+              sharePercent: { type: number }
+        otherBankLoanPaymentsMonthly: { type: integer }
+        warnings:
+          type: array
+          items: { type: string, example: 'Выписка покрывает меньше 12 месяцев' }
+
+    Questionnaire:
+      type: object
+      required: [monthlyRevenue, monthlyExpenses]
+      properties:
+        monthlyRevenue: { type: integer, minimum: 0 }
+        monthlyExpenses: { type: integer, minimum: 0 }
+        hasOtherLoans: { type: boolean }
+        otherLoansMonthlyPayment: { type: integer, minimum: 0 }
+        employees: { type: integer, minimum: 0 }
+
+    GoalAnswer:
+      type: object
+      required: [questionId, value]
+      properties:
+        questionId: { type: string, description: 'id из question-sets.json' }
+        value:
+          description: 'Значение по type вопроса. null — клиент ответил «не знаю»'
+          nullable: true
+          oneOf:
+            - { type: string }
+            - { type: number }
+            - { type: boolean }
+
+    GoalsData:
+      type: object
+      required: [goals, source]
+      properties:
+        source: { type: string, enum: [FORM, AI] }
+        goals:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            type: object
+            required: [goalType, answers]
+            properties:
+              goalType: { $ref: '#/components/schemas/GoalType' }
+              answers:
+                type: array
+                items: { $ref: '#/components/schemas/GoalAnswer' }
+        commonAnswers:
+          type: array
+          items: { $ref: '#/components/schemas/GoalAnswer' }
+        clientText: { type: string, description: 'Исходный текст клиента (для сотрудника). На расчёт не влияет' }
+
+    QuestionType:
+      type: string
+      enum: [money, number, months, boolean, choice, text, okved]
+      description: 'money — целые рубли; months — целое число месяцев; choice — одно из options; okved — код из GET /okved'
+
+    Question:
+      type: object
+      required: [id, field, text, type, required, unknownAllowed]
+      properties:
+        id: { type: string, example: 'inventory.amount', description: 'Не менять: на него завязаны сайт, сервер и ИИ' }
+        field: { type: string, example: 'inventoryAmount' }
+        text: { type: string, description: 'Текст вопроса для клиента' }
+        type: { $ref: '#/components/schemas/QuestionType' }
+        options:
+          type: array
+          description: Только для type = choice
+          items: { type: string }
+        required: { type: boolean }
+        unknownAllowed: { type: boolean, description: 'true — можно ответить «Не знаю» (value = null)' }
+
+    QuestionGroup:
+      type: object
+      required: [title, questions]
+      properties:
+        title: { type: string }
+        questions:
+          type: array
+          items: { $ref: '#/components/schemas/Question' }
+
+    GoalQuestionSet:
+      allOf:
+        - $ref: '#/components/schemas/QuestionGroup'
+        - type: object
+          required: [goalType]
+          properties:
+            goalType: { $ref: '#/components/schemas/GoalType' }
+
+    QuestionSets:
+      type: object
+      description: Содержимое question-sets.json
+      required: [version, common, goals]
+      properties:
+        version: { type: string }
+        note: { type: string }
+        common: { $ref: '#/components/schemas/QuestionGroup' }
+        goals:
+          type: array
+          items: { $ref: '#/components/schemas/GoalQuestionSet' }
+
+    DialogMessage:
+      type: object
+      required: [role, text, at]
+      properties:
+        role: { type: string, enum: [CLIENT, ASSISTANT] }
+        text: { type: string }
+        at: { type: string, format: date-time }
+
+    DialogState:
+      type: object
+      required: [state, messages]
+      properties:
+        state:
+          type: string
+          enum: [ASKING, SUMMARY, ESCALATED]
+          description: 'ASKING — ждём ответ; SUMMARY — показать сводку и «Всё верно»; ESCALATED — цель не понята после 2 попыток: показать кнопки целей, если не подошли — «Передать сотруднику» (POST /handoff)'
+        messages:
+          type: array
+          items: { $ref: '#/components/schemas/DialogMessage' }
+        currentQuestionId: { type: string }
+        quickReplies:
+          type: array
+          description: Кнопки-подсказки под вопросом
+          items: { type: string, example: 'Не знаю' }
+        collected: { $ref: '#/components/schemas/GoalsData' }
+        summaryText: { type: string }
+
+    Okved:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string, example: '13.92' }
+        name: { type: string }
+
+    EstimateItem:
+      type: object
+      required: [id, category, title, amount, source, product]
+      properties:
+        id: { type: string }
+        category: { $ref: '#/components/schemas/CostCategory' }
+        title: { type: string, example: 'Оборудование для второго цеха' }
+        amount: { type: integer }
+        source:
+          type: string
+          enum: [CLIENT, STATEMENT, INDUSTRY, RULE]
+          description: 'Откуда цифра: клиент, выписка, справочник отрасли, правило (запас)'
+        product: { $ref: '#/components/schemas/ProductType' }
+        excluded: { type: boolean }
+        note: { type: string }
+
+    Estimate:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/EstimateItem' }
+        total: { type: integer }
+        startSmallerSuggested: { type: boolean, description: 'Плохой сценарий опасен — предлагаем начать меньше' }
+
+    OfferProduct:
+      type: object
+      required: [product, amount, termMonths, ratePercent, monthlyPayment]
+      properties:
+        product: { $ref: '#/components/schemas/ProductType' }
+        title: { type: string }
+        amount: { type: integer }
+        termMonths: { type: integer }
+        ratePercent: { type: number }
+        gracePeriodMonths: { type: integer, description: 'Месяцы «только проценты»' }
+        monthlyPayment: { type: integer, description: 'Наибольший месячный платёж по продукту. Для OVERDRAFT — проценты при полном использовании лимита; для BANK_GUARANTEE — 0' }
+        fee: { type: integer, description: 'Для BANK_GUARANTEE — разовая комиссия' }
+        note: { type: string, description: 'Пояснение, например для овердрафта' }
+        coversItems:
+          type: array
+          items: { type: string, description: 'id строк сметы' }
+        partner:
+          type: object
+          properties:
+            name: { type: string }
+            discountPercent: { type: number }
+
+    Offer:
+      type: object
+      required: [id, kind, products, totalAmount, firstMonthsPayment, fullPayment, overpayment, whyItFits]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [MAIN, SMALLER, ALTERNATIVE] }
+        termsChanged: { type: boolean, description: 'true — «другие условия»: отличается от запрошенного' }
+        products:
+          type: array
+          items: { $ref: '#/components/schemas/OfferProduct' }
+        totalAmount: { type: integer }
+        firstMonthsPayment: { type: integer, description: 'Платёж в период отсрочки' }
+        fullPayment: { type: integer, description: 'Платёж после отсрочки' }
+        overpayment: { type: integer, description: 'Переплата за весь срок' }
+        paybackMonths:
+          type: object
+          properties:
+            good: { type: integer }
+            normal: { type: integer }
+            bad: { type: integer, nullable: true, description: 'null — не окупается в плохом сценарии' }
+        whyItFits:
+          type: array
+          maxItems: 3
+          items: { type: string }
+        partnerServices:
+          type: array
+          description: 'Не кредит: услуги партнёров банка со скидкой (реклама). В totalAmount, платежи и переплату не входят'
+          items:
+            type: object
+            required: [title, amount, withDiscount, discountPercent]
+            properties:
+              title: { type: string }
+              amount: { type: integer, description: 'Цена без скидки' }
+              withDiscount: { type: integer }
+              discountPercent: { type: number }
+
+    ContractClause:
+      type: object
+      required: [id, title, legalText, plainText, important]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        legalText: { type: string }
+        plainText: { type: string, description: 'Пояснение простым языком' }
+        important: { type: boolean, description: 'Пометка «Важно»' }
+
+    Contract:
+      type: object
+      required: [clauses, summary, faq]
+      properties:
+        clauses:
+          type: array
+          items: { $ref: '#/components/schemas/ContractClause' }
+        summary:
+          type: array
+          minItems: 3
+          maxItems: 3
+          description: 'Три главных пункта перед подписью: сколько платить, что в залоге, что будет при просрочке'
+          items: { type: string }
+        faq:
+          type: array
+          description: Готовые вопросы «Что будет, если…»
+          items:
+            type: object
+            required: [id, question]
+            properties:
+              id: { type: string }
+              question: { type: string }
+        downloadUrl: { type: string, description: 'Полный договор для юриста' }
+
+    SchedulePayment:
+      type: object
+      required: [date, total, principal, interest, status]
+      properties:
+        date: { type: string, format: date }
+        total: { type: integer }
+        principal: { type: integer }
+        interest: { type: integer }
+        status: { type: string, enum: [PAID, UPCOMING, POSTPONED] }
+
+    Schedule:
+      type: object
+      required: [payments, remainingDebt]
+      properties:
+        payments:
+          type: array
+          items: { $ref: '#/components/schemas/SchedulePayment' }
+        remainingDebt: { type: integer }
+        nextPayment: { $ref: '#/components/schemas/SchedulePayment' }
+
+    NotificationOption:
+      type: string
+      enum: [POSTPONE_PAYMENT, INTEREST_ONLY, RESTRUCTURE, OVERDRAFT, ACCEPT_LIMIT, DECLINE]
+
+    Notification:
+      type: object
+      required: [id, kind, text, createdAt]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [EARLY_WARNING, LIMIT_INCREASE, INFO] }
+        text: { type: string }
+        options:
+          type: array
+          items: { $ref: '#/components/schemas/NotificationOption' }
+        chosen: { $ref: '#/components/schemas/NotificationOption' }
+        createdAt: { type: string, format: date-time }
+
+    ScoreFactor:
+      type: object
+      required: [code, block, points, maxPoints, reason]
+      properties:
+        code: { type: string, description: 'Код фактора — список определит БА' }
+        block: { type: string, enum: [BUSINESS, OWNER, IDEA, INDUSTRY] }
+        points: { type: integer }
+        maxPoints: { type: integer }
+        reason: { type: string, example: '−8: просрочка 40 дней в 2025 году' }
+
+    Score:
+      type: object
+      required: [total, zone, factors]
+      properties:
+        total: { type: integer, minimum: 0, maximum: 100 }
+        zone: { $ref: '#/components/schemas/Zone' }
+        factors:
+          type: array
+          items: { $ref: '#/components/schemas/ScoreFactor' }
+        flags:
+          type: array
+          description: Сработавшие корзины
+          items:
+            type: object
+            required: [code, basket, text]
+            properties:
+              code: { type: string }
+              basket: { type: string, enum: [STOP, MINUS, MANUAL] }
+              text: { type: string }
+
+    StaffApplicationListItem:
+      type: object
+      required: [id, status, applicantName, createdAt, needsAttention]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/ApplicationStatus' }
+        applicantName: { type: string }
+        okvedName: { type: string }
+        requestedAmount: { type: integer }
+        scoreTotal: { type: integer }
+        zone: { $ref: '#/components/schemas/Zone' }
+        needsAttention: { type: boolean, description: 'MANUAL_REVIEW или INFO_REQUESTED — показывать сверху' }
+        createdAt: { type: string, format: date-time }
+
+    HistoryEntry:
+      type: object
+      required: [at, actor, toStatus]
+      properties:
+        at: { type: string, format: date-time }
+        actor: { type: string, enum: [CLIENT, SYSTEM, STAFF] }
+        fromStatus: { $ref: '#/components/schemas/ApplicationStatus' }
+        toStatus: { $ref: '#/components/schemas/ApplicationStatus' }
+        comment: { type: string }
+
+    BreakEvenComparison:
+      type: object
+      description: |
+        Только информационное сравнение прогноза клиента и синтетического/официального
+        отраслевого ориентира. Не влияет на Score.total, Score.factors и Score.zone.
+        Элемент создаётся только при двух положительных целых сроках.
+      required: [goalIndex, goalType, questionId, okvedCode, clientMonths, industryMonths, differenceMonths, sourceType, text]
+      properties:
+        goalIndex: { type: integer, minimum: 0, description: 'Индекс goals[] в GoalsData, начиная с 0' }
+        goalType: { $ref: '#/components/schemas/GoalType' }
+        questionId: { type: string, enum: ['start.breakEven', 'location.breakEven'] }
+        okvedCode: { type: string }
+        clientMonths: { type: integer, minimum: 1, description: 'Ответ клиента expectedBreakEvenMonths, не проверенный факт' }
+        industryMonths: { type: integer, minimum: 1, description: 'industries.json → typicalBreakEvenMonths' }
+        differenceMonths: { type: integer, description: 'clientMonths минус industryMonths; отрицательно — быстрее ориентира' }
+        sourceType: { type: string, enum: [SYNTHETIC, OFFICIAL] }
+        dataAsOf: { type: string, format: date }
+        text: { type: string, description: 'Текст для сотрудника, с указанием статуса прогноза и источника' }
+
+    StaffApplicationCard:
+      type: object
+      required: [application, history]
+      properties:
+        application: { $ref: '#/components/schemas/Application' }
+        passport: { $ref: '#/components/schemas/Passport' }
+        statement: { $ref: '#/components/schemas/StatementSummary' }
+        questionnaire: { $ref: '#/components/schemas/Questionnaire' }
+        goals: { $ref: '#/components/schemas/GoalsData' }
+        estimate: { $ref: '#/components/schemas/Estimate' }
+        score: { $ref: '#/components/schemas/Score' }
+        breakEvenComparisons:
+          type: array
+          description: |
+            Сравнения прогнозов окупаемости по целям START_BUSINESS / NEW_LOCATION;
+            пустой массив, если нет корректных сроков. Только для сотрудника,
+            не участвует в оценке риска. Детали расчёта — scoring-clarifications.md.
+          items: { $ref: '#/components/schemas/BreakEvenComparison' }
+        handoff:
+          type: object
+          nullable: true
+          description: 'Заполнено, если клиент сам передал заявку сотруднику (POST /handoff). Сметы и баллов в такой заявке нет'
+          required: [reason, at]
+          properties:
+            reason: { type: string, enum: [GOAL_UNCLEAR] }
+            text: { type: string }
+            at: { type: string, format: date-time }
+        dialog: { $ref: '#/components/schemas/DialogState' }
+        recommendation:
+          type: object
+          description: Рекомендация системы
+          properties:
+            action: { type: string, enum: [APPROVE, CHANGE_TERMS, REQUEST_INFO, REJECT] }
+            text: { type: string }
+        offers:
+          type: array
+          items: { $ref: '#/components/schemas/Offer' }
+        aiSummary: { type: string, nullable: true, description: 'Сводка ИИ «на что обратить внимание». null, если ИИ недоступен' }
+        history:
+          type: array
+          items: { $ref: '#/components/schemas/HistoryEntry' }
+
+    StaffDecision:
+      type: object
+      required: [action, comment]
+      properties:
+        action: { type: string, enum: [APPROVE, CHANGE_TERMS, REQUEST_INFO, REJECT] }
+        comment: { type: string, minLength: 1 }
+        newTerms:
+          type: object
+          description: Для CHANGE_TERMS
+          properties:
+            amount: { type: integer }
+            termMonths: { type: integer }
+        infoRequestText: { type: string, description: 'Для REQUEST_INFO — что показать клиенту' }
+        advice:
+          type: array
+          maxItems: 3
+          description: Для REJECT — советы клиенту
+          items: { type: string }
+
+    DemoClient:
+      type: object
+      required: [passport, hasBusiness, scenario]
+      properties:
+        passport: { $ref: '#/components/schemas/Passport' }
+        inn: { type: string }
+        hasBusiness: { type: boolean }
+        businessName: { type: string, example: 'ИП Иванова — швейный цех' }
+        scenario: { type: string, example: 'Расширение, зелёная зона, автоодобрение' }
+        hasStatement: { type: boolean }
+        suggestedClientText: { type: string, description: 'Что написать в диалоге для этого сценария' }
