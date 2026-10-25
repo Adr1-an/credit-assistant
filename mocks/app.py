@@ -10,7 +10,7 @@ import logic
 
 app = FastAPI(
     title="Заглушки внешних сервисов",
-    version="0.6.0",
+    version="1.0.0",
     description="ЕГРИП, налоги, БКИ, ФССП, банкротство, паспорт. Данные синтетические. Правила — contract/mocks-contract.md.",
 )
 

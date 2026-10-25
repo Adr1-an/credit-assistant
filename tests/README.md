@@ -10,14 +10,32 @@
 | `statements/{ИНН}.csv` | Их выписки. Скачать — `GET /api/demo/statements/{inn}` | Бэк, жюри |
 | `statements/bad/` | Плохие файлы выписки: пустой, не CSV, чужие колонки, сумма с копейками, 2 месяца | Бэк |
 | `cases.json` | Все 16 случаев (10 демо + 6 краевых) с полными входными данными: паспорт, выписка или анкета, ответы на вопросы | Бэк |
-| `expected-results.json` | **«Ответы к задачнику»**: проверки и корзины, баллы по каждому фактору, зона, статус, смета, предложения, рекомендация сотруднику; у T01 — готовый договор | Бэк, БА |
+| `expected-results.json` | **«Ответы к задачнику»**: проверки и корзины, разбор выписки, баллы по каждому фактору, флаги, зона, статус, смета, предложения, рекомендация сотруднику, сравнение окупаемости, отказ с советами; у T01 — готовый договор | Бэк, БА |
 | `passport-tests.json` | Проверки паспорта P01–P16: запрос → ответ заглушки → что делает сервер | Бэк |
-| `test_mocks.py` | Автотесты: заглушки, паспорт, выписки и что «ответы» не устарели | Владелец продукта |
+| `test_mocks.py` | Автотесты: заглушки, паспорт, выписки, «ответы» не устарели и сходятся с независимой проверкой | Владелец продукта |
 | `build_seed.py` | Создаёт тестовых клиентов, выписки и данные заглушек | Владелец продукта |
 | `reference_scoring.py` | Эталонный расчёт баллов по модели БА | Владелец продукта |
-| `reference_offers.py` | Эталонный расчёт сметы, предложений и договора | Владелец продукта |
+| `reference_offers.py` | Эталонный расчёт сметы, предложений, договора, рекомендаций и отказа | Владелец продукта |
+| `check_expected.py` | Независимая проверка «ответов» другим способом: суммы баллов, графики платежей, ставки, выписки | Владелец продукта |
 
 Эталонные расчёты — только для сверки, **это не код бэка**. Бэк пишет свой расчёт и сравнивает с `expected-results.json`.
+
+## Как бэку сверяться с `expected-results.json`
+
+| Поле в «ответах» | Где это в API | Сравнивать |
+| --- | --- | --- |
+| `checks` | `Application.checks` после согласия | `source`, `state`, `basket` — точно; `code` — только если в «ответах» не `null` |
+| `statusAfterConsent`, `statusAfterSubmit` | `Application.status` | точно |
+| `statementSummary` | ответ `POST /statement` | все поля точно |
+| `score` (`total`, `zone`, `factors`, `flags`) | `StaffApplicationCard.score` | `code`, `block`, `points`, `maxPoints` и флаги — точно; `reason` факторов в «ответах» нет, его текст бэк пишет сам по образцу из модели |
+| `score.blocks` | — | для удобства, в API нет |
+| `manualReasons` | — | для удобства: коды флагов `MANUAL` |
+| `estimate` | ответ `PUT /goals` | строки (`category`, `amount`, `source`, `product`), `total`, `startSmallerSuggested` — точно; `title` и `id` — по образцу |
+| `offers` | `GET /offers` (для `MANUAL_REVIEW` — после `APPROVE` сотрудника) | суммы, ставки, сроки, отсрочки, платежи, переплата, `whyItFits` — точно |
+| `recommendation` | `StaffApplicationCard.recommendation` | точно |
+| `breakEvenComparisons` | `StaffApplicationCard.breakEvenComparisons` | точно |
+| `rejection` | `Application.rejection` | точно |
+| `contractExample` (T01) | `GET /contract` | пункты, сводка, вопросы — точно; ответы FAQ — в `faqAnswers` для `POST /contract/ask` |
 
 ## Как запустить тесты
 
@@ -30,8 +48,9 @@ python -m unittest discover -s tests -v
 1. Правишь клиентов в `build_seed.py`.
 2. `python tests/build_seed.py`
 3. `python tests/reference_scoring.py` (баллы; сверяет с таблицами БА)
-4. `python tests/reference_offers.py` (сметы, предложения, договор)
-5. Запускаешь тесты.
+4. `python tests/reference_offers.py` (сметы, предложения, договор, рекомендации, отказ)
+5. `python tests/check_expected.py` (независимая проверка)
+6. Запускаешь тесты.
 
 ## 10 демо-клиентов
 

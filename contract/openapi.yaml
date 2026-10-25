@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Умный финансовый навигатор для ИП — API
-  version: 0.9.0
+  version: 1.0.0
   description: |
     Запросы между сайтом (React) и сервером (Python, FastAPI).
     Общие правила — в README.md контракта. Деньги — целые рубли. Входа нет:
@@ -898,7 +898,7 @@ components:
         goals:
           type: array
           items: { $ref: '#/components/schemas/GoalType' }
-        reviewDeadline: { type: string, format: date-time, description: 'Для MANUAL_REVIEW: «ответ до …»' }
+        reviewDeadline: { type: string, format: date-time, description: 'Для MANUAL_REVIEW: «ответ до …» = переход в MANUAL_REVIEW + 2 рабочих дня (product-rules-v1.md, раздел 6)' }
         infoRequest:
           type: object
           description: Для INFO_REQUESTED
@@ -907,14 +907,14 @@ components:
             requestedBy: { type: string, enum: [SYSTEM, STAFF] }
         rejection:
           type: object
-          description: Для REJECTED. Без внутренней формулы банка
+          description: 'Для REJECTED. Без внутренней формулы банка. Тексты и советы — product-rules-v1.md, раздел 6.2'
           properties:
             text: { type: string }
             advice:
               type: array
               maxItems: 3
               items: { type: string }
-            retryAfterMonths: { type: integer }
+            retryAfterMonths: { type: integer, nullable: true, description: 'Через сколько месяцев можно подать снова; null — после устранения причины (например, банкротства)' }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -1257,7 +1257,7 @@ components:
           items: { $ref: '#/components/schemas/ScoreFactor' }
         flags:
           type: array
-          description: Сработавшие корзины
+          description: 'Сработавшие корзины MANUAL и MINUS. Коды и тексты — scoring-clarifications.md, раздел 8'
           items:
             type: object
             required: [code, basket, text]

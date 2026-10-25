@@ -161,6 +161,10 @@ class MocksHTTP(unittest.TestCase):
         self.assertEqual((SEED / "expected-results.json").read_text(encoding="utf-8"), before,
                          "expected-results.json устарел: запусти reference_scoring.py и reference_offers.py")
 
+    def test_expected_independent(self):
+        import check_expected
+        self.assertEqual(check_expected.run(), [])
+
     def test_offers_rules(self):
         for r in load("expected-results.json")["results"]:
             for o in r.get("offers") or []:

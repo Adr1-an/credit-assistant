@@ -2,7 +2,7 @@
   "version": "1.0",
   "evaluationDate": "2026-10-24",
   "model": "Модель баллов БА v1 от 24.10.2026 (contract/scoring-model-v1.docx)",
-  "note": "Посчитано эталонными скриптами tests/reference_scoring.py и reference_offers.py. Для MANUAL_REVIEW предложения посчитаны так, как если сотрудник нажмёт APPROVE (ставка +2 п.п.).",
+  "note": "Посчитано эталонными скриптами tests/reference_scoring.py и tests/reference_offers.py. Для MANUAL_REVIEW предложения посчитаны так, как если сотрудник нажмёт APPROVE (ставка +2 п.п.).",
   "results": [
     {
       "code": "T01",
@@ -123,10 +123,120 @@
             "points": 3,
             "maxPoints": 3
           }
-        ]
+        ],
+        "flags": []
       },
       "manualReasons": [],
       "statusAfterSubmit": "OFFER_READY",
+      "statementSummary": {
+        "periodFrom": "2025-10-03",
+        "periodTo": "2026-09-28",
+        "monthsCovered": 12,
+        "avgMonthlyIncome": 1200000,
+        "avgMonthlyExpense": 900000,
+        "monthly": [
+          {
+            "month": "2025-10",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2025-11",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2025-12",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-01",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-02",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-03",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-04",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-05",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-06",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-07",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-08",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-09",
+            "income": 1200000,
+            "expense": 900000
+          }
+        ],
+        "expenseByCategory": {
+          "LOAN_PAYMENTS": 25000,
+          "MATERIALS": 306250,
+          "RENT": 131250,
+          "SALARY": 350000,
+          "TAXES": 87500
+        },
+        "topCustomers": [
+          {
+            "name": "ООО Сервис-Плюс",
+            "inn": "5403456789",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Текстильторг",
+            "inn": "7701234567",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Домашний уют",
+            "inn": "7802345678",
+            "sharePercent": 25.0
+          }
+        ],
+        "otherBankLoanPaymentsMonthly": 25000,
+        "warnings": []
+      },
+      "breakEvenComparisons": [
+        {
+          "goalIndex": 0,
+          "goalType": "NEW_LOCATION",
+          "questionId": "location.breakEven",
+          "okvedCode": "13.92",
+          "clientMonths": 14,
+          "industryMonths": 20,
+          "differenceMonths": -6,
+          "sourceType": "SYNTHETIC",
+          "dataAsOf": "2026-10-01",
+          "text": "По прогнозу клиента окупаемость быстрее синтетического отраслевого ориентира на 6 месяцев"
+        }
+      ],
       "estimate": {
         "items": [
           {
@@ -267,9 +377,9 @@
             }
           ],
           "whyItFits": [
+            "Платёж — 69% свободных денег вашего бизнеса",
             "Отсрочка 3 мес.: пока бизнес запускается, платите только проценты — 93 346 ₽",
-            "Оборудование в лизинге — не нужен залог",
-            "Реклама у партнёра банка со скидкой 20%"
+            "Оборудование в лизинге — не нужен залог"
           ]
         },
         {
@@ -345,9 +455,9 @@
             }
           ],
           "whyItFits": [
-            "Если выручка упадёт на 20%, платёж всё равно по силам",
-            "Отсрочка 3 мес.: пока бизнес запускается, платите только проценты — 55 812 ₽",
-            "Оборудование в лизинге — не нужен залог"
+            "Платёж на 83 624 ₽ меньше главного предложения",
+            "Платёж — 41% свободных денег вашего бизнеса",
+            "Отсрочка 3 мес.: пока бизнес запускается, платите только проценты — 55 812 ₽"
           ]
         },
         {
@@ -421,9 +531,9 @@
             }
           ],
           "whyItFits": [
-            "Без отсрочки — переплата меньше",
-            "Оборудование в лизинге — не нужен залог",
-            "Реклама у партнёра банка со скидкой 20%"
+            "Без отсрочки — переплата меньше на 45 662 ₽",
+            "Платёж — 62% свободных денег вашего бизнеса",
+            "Оборудование в лизинге — не нужен залог"
           ]
         }
       ],
@@ -658,10 +768,113 @@
             "points": 2,
             "maxPoints": 3
           }
+        ],
+        "flags": [
+          {
+            "code": "BKI_HISTORIC_OVERDUE",
+            "basket": "MINUS",
+            "text": "Просрочка до 90 дней за последние 3 года"
+          }
         ]
       },
       "manualReasons": [],
       "statusAfterSubmit": "MANUAL_REVIEW",
+      "statementSummary": {
+        "periodFrom": "2025-10-03",
+        "periodTo": "2026-09-28",
+        "monthsCovered": 12,
+        "avgMonthlyIncome": 950000,
+        "avgMonthlyExpense": 760000,
+        "monthly": [
+          {
+            "month": "2025-10",
+            "income": 950000,
+            "expense": 760000
+          },
+          {
+            "month": "2025-11",
+            "income": 950000,
+            "expense": 760000
+          },
+          {
+            "month": "2025-12",
+            "income": 950000,
+            "expense": 760000
+          },
+          {
+            "month": "2026-01",
+            "income": 950000,
+            "expense": 760000
+          },
+          {
+            "month": "2026-02",
+            "income": 950000,
+            "expense": 760000
+          },
+          {
+            "month": "2026-03",
+            "income": 950000,
+            "expense": 760000
+          },
+          {
+            "month": "2026-04",
+            "income": 950000,
+            "expense": 760000
+          },
+          {
+            "month": "2026-05",
+            "income": 950000,
+            "expense": 760000
+          },
+          {
+            "month": "2026-06",
+            "income": 950000,
+            "expense": 760000
+          },
+          {
+            "month": "2026-07",
+            "income": 950000,
+            "expense": 760000
+          },
+          {
+            "month": "2026-08",
+            "income": 950000,
+            "expense": 760000
+          },
+          {
+            "month": "2026-09",
+            "income": 950000,
+            "expense": 760000
+          }
+        ],
+        "expenseByCategory": {
+          "LOAN_PAYMENTS": 20000,
+          "MATERIALS": 259000,
+          "RENT": 111000,
+          "SALARY": 296000,
+          "TAXES": 74000
+        },
+        "topCustomers": [
+          {
+            "name": "ООО Сервис-Плюс",
+            "inn": "5403456789",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Текстильторг",
+            "inn": "7701234567",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Домашний уют",
+            "inn": "7802345678",
+            "sharePercent": 25.0
+          }
+        ],
+        "otherBankLoanPaymentsMonthly": 20000,
+        "warnings": []
+      },
+      "breakEvenComparisons": [],
       "estimate": {
         "items": [
           {
@@ -725,6 +938,7 @@
           },
           "partnerServices": [],
           "whyItFits": [
+            "Платёж — 16% свободных денег вашего бизнеса",
             "Оборудование в лизинге — не нужен залог"
           ]
         },
@@ -760,7 +974,7 @@
           "totalAmount": 520000,
           "firstMonthsPayment": 18606,
           "fullPayment": 18606,
-          "overpayment": 162177,
+          "overpayment": 162178,
           "paybackMonths": {
             "good": 18,
             "normal": 24,
@@ -768,7 +982,8 @@
           },
           "partnerServices": [],
           "whyItFits": [
-            "Если выручка упадёт на 20%, платёж всё равно по силам",
+            "Платёж на 12 658 ₽ меньше главного предложения",
+            "Платёж — 10% свободных денег вашего бизнеса",
             "Оборудование в лизинге — не нужен залог"
           ]
         }
@@ -898,10 +1113,138 @@
             "points": 1,
             "maxPoints": 3
           }
-        ]
+        ],
+        "flags": []
       },
       "manualReasons": [],
-      "statusAfterSubmit": "REJECTED"
+      "statusAfterSubmit": "REJECTED",
+      "statementSummary": {
+        "periodFrom": "2025-10-03",
+        "periodTo": "2026-09-28",
+        "monthsCovered": 12,
+        "avgMonthlyIncome": 106250,
+        "avgMonthlyExpense": 150000,
+        "monthly": [
+          {
+            "month": "2025-10",
+            "income": 200000,
+            "expense": 150000
+          },
+          {
+            "month": "2025-11",
+            "income": 200000,
+            "expense": 150000
+          },
+          {
+            "month": "2025-12",
+            "income": 200000,
+            "expense": 150000
+          },
+          {
+            "month": "2026-01",
+            "income": 200000,
+            "expense": 150000
+          },
+          {
+            "month": "2026-02",
+            "income": 200000,
+            "expense": 150000
+          },
+          {
+            "month": "2026-03",
+            "income": 200000,
+            "expense": 150000
+          },
+          {
+            "month": "2026-04",
+            "income": 20000,
+            "expense": 150000
+          },
+          {
+            "month": "2026-05",
+            "income": 20000,
+            "expense": 150000
+          },
+          {
+            "month": "2026-06",
+            "income": 20000,
+            "expense": 150000
+          },
+          {
+            "month": "2026-07",
+            "income": 5000,
+            "expense": 150000
+          },
+          {
+            "month": "2026-08",
+            "income": 5000,
+            "expense": 150000
+          },
+          {
+            "month": "2026-09",
+            "income": 5000,
+            "expense": 150000
+          }
+        ],
+        "expenseByCategory": {
+          "LOAN_PAYMENTS": 10000,
+          "MATERIALS": 49000,
+          "RENT": 21000,
+          "SALARY": 56000,
+          "TAXES": 14000
+        },
+        "topCustomers": [
+          {
+            "name": "ООО Сервис-Плюс",
+            "inn": "5403456789",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Текстильторг",
+            "inn": "7701234567",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Домашний уют",
+            "inn": "7802345678",
+            "sharePercent": 25.0
+          }
+        ],
+        "otherBankLoanPaymentsMonthly": 10000,
+        "warnings": []
+      },
+      "breakEvenComparisons": [],
+      "estimate": {
+        "items": [
+          {
+            "id": "i1",
+            "category": "BUFFER",
+            "title": "Кассовый разрыв",
+            "amount": 30000,
+            "source": "CLIENT",
+            "product": "OVERDRAFT"
+          },
+          {
+            "id": "i2",
+            "category": "BUFFER",
+            "title": "Кассовый разрыв (сверх лимита овердрафта)",
+            "amount": 270000,
+            "source": "RULE",
+            "product": "CREDIT_LINE"
+          }
+        ],
+        "total": 300000,
+        "startSmallerSuggested": false
+      },
+      "rejection": {
+        "text": "Сейчас мы не можем одобрить заявку",
+        "advice": [
+          "Выровняйте выручку: в нескольких месяцах она была заметно ниже обычной",
+          "Сократите расходы: сейчас после них почти ничего не остаётся",
+          "Вернитесь, когда выручка за 3 месяца перестанет снижаться"
+        ],
+        "retryAfterMonths": 3
+      }
     },
     {
       "code": "T04",
@@ -948,7 +1291,14 @@
       "statusAfterConsent": "REJECTED",
       "score": null,
       "manualReasons": null,
-      "statusAfterSubmit": null
+      "statusAfterSubmit": null,
+      "rejection": {
+        "text": "Сейчас мы не можем одобрить заявку: идёт процедура банкротства",
+        "advice": [
+          "Подайте заявку после завершения процедуры банкротства"
+        ],
+        "retryAfterMonths": null
+      }
     },
     {
       "code": "T05",
@@ -1069,10 +1419,25 @@
             "points": 2,
             "maxPoints": 3
           }
-        ]
+        ],
+        "flags": []
       },
       "manualReasons": [],
       "statusAfterSubmit": "OFFER_READY",
+      "breakEvenComparisons": [
+        {
+          "goalIndex": 0,
+          "goalType": "START_BUSINESS",
+          "questionId": "start.breakEven",
+          "okvedCode": "10.71",
+          "clientMonths": 12,
+          "industryMonths": 18,
+          "differenceMonths": -6,
+          "sourceType": "SYNTHETIC",
+          "dataAsOf": "2026-10-01",
+          "text": "По прогнозу клиента окупаемость быстрее синтетического отраслевого ориентира на 6 месяцев"
+        }
+      ],
       "estimate": {
         "items": [
           {
@@ -1148,7 +1513,7 @@
           },
           "partnerServices": [],
           "whyItFits": [
-            "Без отсрочки — переплата меньше"
+            "Без отсрочки — переплата меньше на 3 561 ₽"
           ]
         }
       ],
@@ -1277,10 +1642,25 @@
             "points": 2,
             "maxPoints": 3
           }
-        ]
+        ],
+        "flags": []
       },
       "manualReasons": [],
       "statusAfterSubmit": "MANUAL_REVIEW",
+      "breakEvenComparisons": [
+        {
+          "goalIndex": 0,
+          "goalType": "START_BUSINESS",
+          "questionId": "start.breakEven",
+          "okvedCode": "10.71",
+          "clientMonths": 11,
+          "industryMonths": 18,
+          "differenceMonths": -7,
+          "sourceType": "SYNTHETIC",
+          "dataAsOf": "2026-10-01",
+          "text": "По прогнозу клиента окупаемость быстрее синтетического отраслевого ориентира на 7 месяцев"
+        }
+      ],
       "estimate": {
         "items": [
           {
@@ -1306,7 +1686,7 @@
               "amount": 700000,
               "termMonths": 24,
               "ratePercent": 24.0,
-              "monthlyPayment": 41156,
+              "monthlyPayment": 41158,
               "coversItems": [
                 "i1"
               ],
@@ -1316,8 +1696,8 @@
           ],
           "totalAmount": 700000,
           "firstMonthsPayment": 14000,
-          "fullPayment": 41156,
-          "overpayment": 206136,
+          "fullPayment": 41158,
+          "overpayment": 206138,
           "paybackMonths": {
             "good": 14,
             "normal": 18,
@@ -1356,7 +1736,7 @@
           },
           "partnerServices": [],
           "whyItFits": [
-            "Без отсрочки — переплата меньше"
+            "Без отсрочки — переплата меньше на 17 904 ₽"
           ]
         }
       ],
@@ -1485,12 +1865,20 @@
             "points": 2,
             "maxPoints": 3
           }
+        ],
+        "flags": [
+          {
+            "code": "NO_VERIFIED_STATEMENT",
+            "basket": "MANUAL",
+            "text": "Нет выписки, только анкета"
+          }
         ]
       },
       "manualReasons": [
         "NO_VERIFIED_STATEMENT"
       ],
       "statusAfterSubmit": "MANUAL_REVIEW",
+      "breakEvenComparisons": [],
       "estimate": {
         "items": [
           {
@@ -1661,12 +2049,115 @@
             "points": 3,
             "maxPoints": 3
           }
+        ],
+        "flags": [
+          {
+            "code": "PASSPORT_HOLDER_MISMATCH",
+            "basket": "MANUAL",
+            "text": "Паспортные данные не совпадают с записью о паспорте"
+          }
         ]
       },
       "manualReasons": [
         "PASSPORT_HOLDER_MISMATCH"
       ],
       "statusAfterSubmit": "MANUAL_REVIEW",
+      "statementSummary": {
+        "periodFrom": "2025-10-03",
+        "periodTo": "2026-09-28",
+        "monthsCovered": 12,
+        "avgMonthlyIncome": 1200000,
+        "avgMonthlyExpense": 900000,
+        "monthly": [
+          {
+            "month": "2025-10",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2025-11",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2025-12",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-01",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-02",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-03",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-04",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-05",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-06",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-07",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-08",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-09",
+            "income": 1200000,
+            "expense": 900000
+          }
+        ],
+        "expenseByCategory": {
+          "LOAN_PAYMENTS": 25000,
+          "MATERIALS": 306250,
+          "RENT": 131250,
+          "SALARY": 350000,
+          "TAXES": 87500
+        },
+        "topCustomers": [
+          {
+            "name": "ООО Сервис-Плюс",
+            "inn": "5403456789",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Текстильторг",
+            "inn": "7701234567",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Домашний уют",
+            "inn": "7802345678",
+            "sharePercent": 25.0
+          }
+        ],
+        "otherBankLoanPaymentsMonthly": 25000,
+        "warnings": []
+      },
+      "breakEvenComparisons": [],
       "estimate": {
         "items": [
           {
@@ -1730,6 +2221,7 @@
           },
           "partnerServices": [],
           "whyItFits": [
+            "Платёж — 13% свободных денег вашего бизнеса",
             "Оборудование в лизинге — не нужен залог"
           ]
         }
@@ -1737,7 +2229,7 @@
       "offersRoute": "STAFF",
       "recommendation": {
         "action": "REQUEST_INFO",
-        "text": "Уточните паспортные данные: они не совпадают с записью о паспорте"
+        "text": "Уточните паспортные данные: не совпадает дата выдачи"
       }
     },
     {
@@ -1859,12 +2351,115 @@
             "points": 3,
             "maxPoints": 3
           }
+        ],
+        "flags": [
+          {
+            "code": "BANKRUPTCY_PAST_LT_5Y",
+            "basket": "MANUAL",
+            "text": "Банкротство завершено менее 5 лет назад"
+          }
         ]
       },
       "manualReasons": [
         "BANKRUPTCY_PAST_LT_5Y"
       ],
       "statusAfterSubmit": "MANUAL_REVIEW",
+      "statementSummary": {
+        "periodFrom": "2025-10-03",
+        "periodTo": "2026-09-28",
+        "monthsCovered": 12,
+        "avgMonthlyIncome": 1200000,
+        "avgMonthlyExpense": 900000,
+        "monthly": [
+          {
+            "month": "2025-10",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2025-11",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2025-12",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-01",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-02",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-03",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-04",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-05",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-06",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-07",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-08",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-09",
+            "income": 1200000,
+            "expense": 900000
+          }
+        ],
+        "expenseByCategory": {
+          "LOAN_PAYMENTS": 25000,
+          "MATERIALS": 306250,
+          "RENT": 131250,
+          "SALARY": 350000,
+          "TAXES": 87500
+        },
+        "topCustomers": [
+          {
+            "name": "ООО Сервис-Плюс",
+            "inn": "5403456789",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Текстильторг",
+            "inn": "7701234567",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Домашний уют",
+            "inn": "7802345678",
+            "sharePercent": 25.0
+          }
+        ],
+        "otherBankLoanPaymentsMonthly": 25000,
+        "warnings": []
+      },
+      "breakEvenComparisons": [],
       "estimate": {
         "items": [
           {
@@ -1928,6 +2523,7 @@
           },
           "partnerServices": [],
           "whyItFits": [
+            "Платёж — 13% свободных денег вашего бизнеса",
             "Оборудование в лизинге — не нужен залог"
           ]
         }
@@ -1935,7 +2531,7 @@
       "offersRoute": "STAFF",
       "recommendation": {
         "action": "APPROVE",
-        "text": "Риск приемлемый: проверьте BANKRUPTCY_PAST_LT_5Y"
+        "text": "Риск приемлемый, проверьте: банкротство завершено менее 5 лет назад"
       }
     },
     {
@@ -2105,6 +2701,18 @@
             "points": 2,
             "maxPoints": 3
           }
+        ],
+        "flags": [
+          {
+            "code": "BUSINESS_YOUNGER_3_MONTHS",
+            "basket": "MANUAL",
+            "text": "ИП младше 3 месяцев"
+          },
+          {
+            "code": "STATEMENT_INCOMPLETE",
+            "basket": "MANUAL",
+            "text": "Выписка подтверждает меньше 12 месяцев"
+          }
         ]
       },
       "manualReasons": [
@@ -2112,6 +2720,63 @@
         "STATEMENT_INCOMPLETE"
       ],
       "statusAfterSubmit": "MANUAL_REVIEW",
+      "statementSummary": {
+        "periodFrom": "2026-08-03",
+        "periodTo": "2026-09-28",
+        "monthsCovered": 2,
+        "avgMonthlyIncome": 300000,
+        "avgMonthlyExpense": 250000,
+        "monthly": [
+          {
+            "month": "2026-08",
+            "income": 300000,
+            "expense": 250000
+          },
+          {
+            "month": "2026-09",
+            "income": 300000,
+            "expense": 250000
+          }
+        ],
+        "expenseByCategory": {
+          "MATERIALS": 87500,
+          "RENT": 37500,
+          "SALARY": 100000,
+          "TAXES": 25000
+        },
+        "topCustomers": [
+          {
+            "name": "ООО Сервис-Плюс",
+            "inn": "5403456789",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Текстильторг",
+            "inn": "7701234567",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Домашний уют",
+            "inn": "7802345678",
+            "sharePercent": 25.0
+          }
+        ],
+        "otherBankLoanPaymentsMonthly": 0,
+        "warnings": [
+          "Нет операций за 2025-10 — период не подтверждён",
+          "Нет операций за 2025-11 — период не подтверждён",
+          "Нет операций за 2025-12 — период не подтверждён",
+          "Нет операций за 2026-01 — период не подтверждён",
+          "Нет операций за 2026-02 — период не подтверждён",
+          "Нет операций за 2026-03 — период не подтверждён",
+          "Нет операций за 2026-04 — период не подтверждён",
+          "Нет операций за 2026-05 — период не подтверждён",
+          "Нет операций за 2026-06 — период не подтверждён",
+          "Нет операций за 2026-07 — период не подтверждён",
+          "Выписка подтверждает 2 из 12 календарных месяцев"
+        ]
+      },
+      "breakEvenComparisons": [],
       "estimate": {
         "items": [
           {
@@ -2154,7 +2819,9 @@
             "bad": 36
           },
           "partnerServices": [],
-          "whyItFits": []
+          "whyItFits": [
+            "Платёж — 19% свободных денег вашего бизнеса"
+          ]
         },
         {
           "id": "smaller",
@@ -2184,7 +2851,8 @@
           },
           "partnerServices": [],
           "whyItFits": [
-            "Если выручка упадёт на 20%, платёж всё равно по силам"
+            "Платёж на 3 754 ₽ меньше главного предложения",
+            "Платёж — 11% свободных денег вашего бизнеса"
           ]
         }
       ],
@@ -2313,12 +2981,100 @@
             "points": 1,
             "maxPoints": 3
           }
+        ],
+        "flags": [
+          {
+            "code": "STATEMENT_INCOMPLETE",
+            "basket": "MANUAL",
+            "text": "Выписка подтверждает меньше 12 месяцев"
+          }
         ]
       },
       "manualReasons": [
         "STATEMENT_INCOMPLETE"
       ],
       "statusAfterSubmit": "MANUAL_REVIEW",
+      "statementSummary": {
+        "periodFrom": "2026-02-03",
+        "periodTo": "2026-09-28",
+        "monthsCovered": 8,
+        "avgMonthlyIncome": 350000,
+        "avgMonthlyExpense": 315000,
+        "monthly": [
+          {
+            "month": "2026-02",
+            "income": 320000,
+            "expense": 315000
+          },
+          {
+            "month": "2026-03",
+            "income": 330000,
+            "expense": 315000
+          },
+          {
+            "month": "2026-04",
+            "income": 340000,
+            "expense": 315000
+          },
+          {
+            "month": "2026-05",
+            "income": 350000,
+            "expense": 315000
+          },
+          {
+            "month": "2026-06",
+            "income": 350000,
+            "expense": 315000
+          },
+          {
+            "month": "2026-07",
+            "income": 360000,
+            "expense": 315000
+          },
+          {
+            "month": "2026-08",
+            "income": 370000,
+            "expense": 315000
+          },
+          {
+            "month": "2026-09",
+            "income": 380000,
+            "expense": 315000
+          }
+        ],
+        "expenseByCategory": {
+          "MATERIALS": 110250,
+          "RENT": 47250,
+          "SALARY": 126000,
+          "TAXES": 31500
+        },
+        "topCustomers": [
+          {
+            "name": "ООО Сервис-Плюс",
+            "inn": "5403456789",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Текстильторг",
+            "inn": "7701234567",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Домашний уют",
+            "inn": "7802345678",
+            "sharePercent": 25.0
+          }
+        ],
+        "otherBankLoanPaymentsMonthly": 0,
+        "warnings": [
+          "Нет операций за 2025-10 — период не подтверждён",
+          "Нет операций за 2025-11 — период не подтверждён",
+          "Нет операций за 2025-12 — период не подтверждён",
+          "Нет операций за 2026-01 — период не подтверждён",
+          "Выписка подтверждает 8 из 12 календарных месяцев"
+        ]
+      },
+      "breakEvenComparisons": [],
       "estimate": {
         "items": [
           {
@@ -2381,7 +3137,9 @@
             "bad": 18
           },
           "partnerServices": [],
-          "whyItFits": []
+          "whyItFits": [
+            "Платёж — 39% свободных денег вашего бизнеса"
+          ]
         },
         {
           "id": "smaller",
@@ -2423,7 +3181,8 @@
           },
           "partnerServices": [],
           "whyItFits": [
-            "Если выручка упадёт на 20%, платёж всё равно по силам"
+            "Платёж на 5 450 ₽ меньше главного предложения",
+            "Платёж — 23% свободных денег вашего бизнеса"
           ]
         }
       ],
@@ -2552,12 +3311,85 @@
             "points": 2,
             "maxPoints": 3
           }
+        ],
+        "flags": [
+          {
+            "code": "STATEMENT_INCOMPLETE",
+            "basket": "MANUAL",
+            "text": "Выписка подтверждает меньше 12 месяцев"
+          }
         ]
       },
       "manualReasons": [
         "STATEMENT_INCOMPLETE"
       ],
       "statusAfterSubmit": "MANUAL_REVIEW",
+      "statementSummary": {
+        "periodFrom": "2026-06-03",
+        "periodTo": "2026-09-28",
+        "monthsCovered": 4,
+        "avgMonthlyIncome": 400000,
+        "avgMonthlyExpense": 300000,
+        "monthly": [
+          {
+            "month": "2026-06",
+            "income": 400000,
+            "expense": 300000
+          },
+          {
+            "month": "2026-07",
+            "income": 400000,
+            "expense": 300000
+          },
+          {
+            "month": "2026-08",
+            "income": 400000,
+            "expense": 300000
+          },
+          {
+            "month": "2026-09",
+            "income": 400000,
+            "expense": 300000
+          }
+        ],
+        "expenseByCategory": {
+          "LOAN_PAYMENTS": 10000,
+          "MATERIALS": 101500,
+          "RENT": 43500,
+          "SALARY": 116000,
+          "TAXES": 29000
+        },
+        "topCustomers": [
+          {
+            "name": "ООО Сервис-Плюс",
+            "inn": "5403456789",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Текстильторг",
+            "inn": "7701234567",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Домашний уют",
+            "inn": "7802345678",
+            "sharePercent": 25.0
+          }
+        ],
+        "otherBankLoanPaymentsMonthly": 10000,
+        "warnings": [
+          "Нет операций за 2025-10 — период не подтверждён",
+          "Нет операций за 2025-11 — период не подтверждён",
+          "Нет операций за 2025-12 — период не подтверждён",
+          "Нет операций за 2026-01 — период не подтверждён",
+          "Нет операций за 2026-02 — период не подтверждён",
+          "Нет операций за 2026-03 — период не подтверждён",
+          "Нет операций за 2026-04 — период не подтверждён",
+          "Нет операций за 2026-05 — период не подтверждён",
+          "Выписка подтверждает 4 из 12 календарных месяцев"
+        ]
+      },
+      "breakEvenComparisons": [],
       "estimate": {
         "items": [
           {
@@ -2600,7 +3432,9 @@
             "bad": 36
           },
           "partnerServices": [],
-          "whyItFits": []
+          "whyItFits": [
+            "Платёж — 6% свободных денег вашего бизнеса"
+          ]
         }
       ],
       "offersRoute": "STAFF",
@@ -2728,12 +3562,113 @@
             "points": 3,
             "maxPoints": 3
           }
+        ],
+        "flags": [
+          {
+            "code": "STATEMENT_INCOMPLETE",
+            "basket": "MANUAL",
+            "text": "Выписка подтверждает меньше 12 месяцев"
+          }
         ]
       },
       "manualReasons": [
         "STATEMENT_INCOMPLETE"
       ],
       "statusAfterSubmit": "MANUAL_REVIEW",
+      "statementSummary": {
+        "periodFrom": "2025-10-03",
+        "periodTo": "2026-09-28",
+        "monthsCovered": 11,
+        "avgMonthlyIncome": 1200000,
+        "avgMonthlyExpense": 900000,
+        "monthly": [
+          {
+            "month": "2025-10",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2025-11",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2025-12",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-01",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-03",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-04",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-05",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-06",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-07",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-08",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-09",
+            "income": 1200000,
+            "expense": 900000
+          }
+        ],
+        "expenseByCategory": {
+          "LOAN_PAYMENTS": 25000,
+          "MATERIALS": 306250,
+          "RENT": 131250,
+          "SALARY": 350000,
+          "TAXES": 87500
+        },
+        "topCustomers": [
+          {
+            "name": "ООО Сервис-Плюс",
+            "inn": "5403456789",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Текстильторг",
+            "inn": "7701234567",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Домашний уют",
+            "inn": "7802345678",
+            "sharePercent": 25.0
+          }
+        ],
+        "otherBankLoanPaymentsMonthly": 25000,
+        "warnings": [
+          "Нет операций за 2026-02 — период не подтверждён",
+          "Выписка подтверждает 11 из 12 календарных месяцев"
+        ]
+      },
+      "breakEvenComparisons": [],
       "estimate": {
         "items": [
           {
@@ -2797,6 +3732,7 @@
           },
           "partnerServices": [],
           "whyItFits": [
+            "Платёж — 13% свободных денег вашего бизнеса",
             "Оборудование в лизинге — не нужен залог"
           ]
         }
@@ -2926,10 +3862,107 @@
             "points": 3,
             "maxPoints": 3
           }
-        ]
+        ],
+        "flags": []
       },
       "manualReasons": [],
       "statusAfterSubmit": "OFFER_READY",
+      "statementSummary": {
+        "periodFrom": "2025-10-03",
+        "periodTo": "2026-09-28",
+        "monthsCovered": 12,
+        "avgMonthlyIncome": 1200000,
+        "avgMonthlyExpense": 900000,
+        "monthly": [
+          {
+            "month": "2025-10",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2025-11",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2025-12",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-01",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-02",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-03",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-04",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-05",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-06",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-07",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-08",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-09",
+            "income": 1200000,
+            "expense": 900000
+          }
+        ],
+        "expenseByCategory": {
+          "LOAN_PAYMENTS": 25000,
+          "MATERIALS": 306250,
+          "RENT": 131250,
+          "SALARY": 350000,
+          "TAXES": 87500
+        },
+        "topCustomers": [
+          {
+            "name": "ООО Сервис-Плюс",
+            "inn": "5403456789",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Текстильторг",
+            "inn": "7701234567",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Домашний уют",
+            "inn": "7802345678",
+            "sharePercent": 25.0
+          }
+        ],
+        "otherBankLoanPaymentsMonthly": 25000,
+        "warnings": []
+      },
+      "breakEvenComparisons": [],
       "estimate": {
         "items": [
           {
@@ -2993,6 +4026,7 @@
           },
           "partnerServices": [],
           "whyItFits": [
+            "Платёж — 12% свободных денег вашего бизнеса",
             "Оборудование в лизинге — не нужен залог"
           ]
         }
@@ -3122,12 +4156,115 @@
             "points": 3,
             "maxPoints": 3
           }
+        ],
+        "flags": [
+          {
+            "code": "BANKRUPTCY_PAST_LT_5Y",
+            "basket": "MANUAL",
+            "text": "Банкротство завершено менее 5 лет назад"
+          }
         ]
       },
       "manualReasons": [
         "BANKRUPTCY_PAST_LT_5Y"
       ],
       "statusAfterSubmit": "MANUAL_REVIEW",
+      "statementSummary": {
+        "periodFrom": "2025-10-03",
+        "periodTo": "2026-09-28",
+        "monthsCovered": 12,
+        "avgMonthlyIncome": 1200000,
+        "avgMonthlyExpense": 900000,
+        "monthly": [
+          {
+            "month": "2025-10",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2025-11",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2025-12",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-01",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-02",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-03",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-04",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-05",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-06",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-07",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-08",
+            "income": 1200000,
+            "expense": 900000
+          },
+          {
+            "month": "2026-09",
+            "income": 1200000,
+            "expense": 900000
+          }
+        ],
+        "expenseByCategory": {
+          "LOAN_PAYMENTS": 25000,
+          "MATERIALS": 306250,
+          "RENT": 131250,
+          "SALARY": 350000,
+          "TAXES": 87500
+        },
+        "topCustomers": [
+          {
+            "name": "ООО Сервис-Плюс",
+            "inn": "5403456789",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Текстильторг",
+            "inn": "7701234567",
+            "sharePercent": 25.0
+          },
+          {
+            "name": "ООО Домашний уют",
+            "inn": "7802345678",
+            "sharePercent": 25.0
+          }
+        ],
+        "otherBankLoanPaymentsMonthly": 25000,
+        "warnings": []
+      },
+      "breakEvenComparisons": [],
       "estimate": {
         "items": [
           {
@@ -3191,6 +4328,7 @@
           },
           "partnerServices": [],
           "whyItFits": [
+            "Платёж — 13% свободных денег вашего бизнеса",
             "Оборудование в лизинге — не нужен залог"
           ]
         }
@@ -3198,9 +4336,9 @@
       "offersRoute": "STAFF",
       "recommendation": {
         "action": "APPROVE",
-        "text": "Риск приемлемый: проверьте BANKRUPTCY_PAST_LT_5Y"
+        "text": "Риск приемлемый, проверьте: банкротство завершено менее 5 лет назад"
       }
     }
   ],
-  "productRules": "contract/docs/product-rules-v1.md (утверждено 25.10.2026)"
+  "productRules": "contract/product-rules-v1.md (утверждено 25.10.2026)"
 }
