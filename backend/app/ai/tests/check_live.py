@@ -1,7 +1,7 @@
 """Проверка блока ИИ на настоящем GigaChat (через gpt2giga).
 
 Запуск из корня репозитория (там, где лежит .env), когда gpt2giga уже запущен:
-    python tools/check_ai.py
+    python backend/app/ai/tests/check_live.py
 
 Результат печатается на экран и сохраняется в check_ai_result.txt.
 Ключей в результате нет — файл можно присылать.
@@ -12,7 +12,7 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[4]
 OUT = ROOT / "check_ai_result.txt"
 
 
