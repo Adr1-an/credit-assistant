@@ -1,0 +1,27 @@
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #202124;
+  background: #fff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+
+  --color-red: #ef3124;
+  --color-red-hover: #d92a1f;
+  --color-red-active: #be281f;
+  --color-ink: #202124;
+  --color-ink-secondary: #63656a;
+  --color-surface: #fff;
+  --color-muted: #f2f3f5;
+  --color-line: #dedfe3;
+  --color-peach: #ffb4a9;
+  --color-mint: #e8ffb2;
+  --color-dark: #141416;
+  --color-danger-bg: #fff1ef;
+  --color-success-bg: #eef9ed;
+  --radius-field: 14px;
+  --radius-button: 13px;
+  --radius-card: 32px;
+  --shadow-popover: 0 14px 46px rgba(0, 0, 0, 0.15);
+  --focus-ring: 0 0 0 3px rgba(239, 49, 36, 0.32);
+}
