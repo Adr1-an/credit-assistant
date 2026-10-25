@@ -1,0 +1,162 @@
+{
+  "version": "0.2",
+  "note": "Только синтетические демонстрационные отраслевые цифры; источник статистики не подтверждён; не утверждать, что это данные Альфа-Банка, ФНС или Росстата.",
+  "industries": [
+    {
+      "okvedCode": "10.71",
+      "name": "Производство хлеба и хлебобулочных изделий",
+      "riskTier": "MEDIUM",
+      "growthYoYPercent": 6,
+      "closureSharePercent": 7,
+      "dataAsOf": "2026-10-01",
+      "sourceUrl": null,
+      "sourceType": "SYNTHETIC",
+      "scope": "RUSSIA_OKVED_EXACT",
+      "seasonality": "LOW",
+      "typicalExpenses": [
+        {
+          "category": "RENT",
+          "sharePercent": 15
+        },
+        {
+          "category": "SALARY",
+          "sharePercent": 30
+        },
+        {
+          "category": "MATERIALS",
+          "sharePercent": 35
+        },
+        {
+          "category": "TAXES",
+          "sharePercent": 10
+        },
+        {
+          "category": "LOAN_PAYMENTS",
+          "sharePercent": 0
+        },
+        {
+          "category": "OTHER",
+          "sharePercent": 10
+        }
+      ],
+      "typicalBreakEvenMonths": 18
+    },
+    {
+      "okvedCode": "13.92",
+      "name": "Производство готовых текстильных изделий",
+      "riskTier": "LOW",
+      "growthYoYPercent": 7,
+      "closureSharePercent": 4,
+      "dataAsOf": "2026-10-01",
+      "sourceUrl": null,
+      "sourceType": "SYNTHETIC",
+      "scope": "RUSSIA_OKVED_EXACT",
+      "seasonality": "LOW",
+      "typicalExpenses": [
+        {
+          "category": "RENT",
+          "sharePercent": 10
+        },
+        {
+          "category": "SALARY",
+          "sharePercent": 40
+        },
+        {
+          "category": "MATERIALS",
+          "sharePercent": 30
+        },
+        {
+          "category": "TAXES",
+          "sharePercent": 10
+        },
+        {
+          "category": "LOAN_PAYMENTS",
+          "sharePercent": 0
+        },
+        {
+          "category": "OTHER",
+          "sharePercent": 10
+        }
+      ],
+      "typicalBreakEvenMonths": 20
+    },
+    {
+      "okvedCode": "45.20",
+      "name": "Техническое обслуживание и ремонт автотранспортных средств",
+      "riskTier": "MEDIUM",
+      "growthYoYPercent": 2,
+      "closureSharePercent": 8,
+      "dataAsOf": "2026-10-01",
+      "sourceUrl": null,
+      "sourceType": "SYNTHETIC",
+      "scope": "RUSSIA_OKVED_EXACT",
+      "seasonality": "MEDIUM",
+      "typicalExpenses": [
+        {
+          "category": "RENT",
+          "sharePercent": 20
+        },
+        {
+          "category": "SALARY",
+          "sharePercent": 35
+        },
+        {
+          "category": "MATERIALS",
+          "sharePercent": 25
+        },
+        {
+          "category": "TAXES",
+          "sharePercent": 10
+        },
+        {
+          "category": "LOAN_PAYMENTS",
+          "sharePercent": 0
+        },
+        {
+          "category": "OTHER",
+          "sharePercent": 10
+        }
+      ],
+      "typicalBreakEvenMonths": 24
+    },
+    {
+      "okvedCode": "47.76",
+      "name": "Розничная торговля цветами и растениями",
+      "riskTier": "HIGH",
+      "growthYoYPercent": -7,
+      "closureSharePercent": 18,
+      "dataAsOf": "2026-10-01",
+      "sourceUrl": null,
+      "sourceType": "SYNTHETIC",
+      "scope": "RUSSIA_OKVED_EXACT",
+      "seasonality": "HIGH",
+      "typicalExpenses": [
+        {
+          "category": "RENT",
+          "sharePercent": 25
+        },
+        {
+          "category": "SALARY",
+          "sharePercent": 20
+        },
+        {
+          "category": "MATERIALS",
+          "sharePercent": 35
+        },
+        {
+          "category": "TAXES",
+          "sharePercent": 10
+        },
+        {
+          "category": "LOAN_PAYMENTS",
+          "sharePercent": 0
+        },
+        {
+          "category": "OTHER",
+          "sharePercent": 10
+        }
+      ],
+      "typicalBreakEvenMonths": 12
+    }
+  ]
+}
