@@ -67,9 +67,13 @@ def _parse_content(content) -> dict:
     return obj
 
 
+last_content = None
+
+
 def chat_json(task: str, system: str, user: str, schema: dict) -> dict:
     """Отправить задачу модели и получить JSON-объект. Проверку смысла делает вызывающая функция."""
-    global _schema_unsupported
+    global _schema_unsupported, last_content
+    last_content = None
     s = config.load()
     if not s.enabled:
         raise AIUnavailable("ИИ выключен (LLM_ENABLED=false или не задан LLM_BASE_URL)")
@@ -98,6 +102,7 @@ def chat_json(task: str, system: str, user: str, schema: dict) -> dict:
             else:
                 raise
         content = resp["choices"][0]["message"]["content"]
+        last_content = content   # для отладки (tools/check_ai.py); в логи бэка не выводится
     except AIUnavailable:
         raise
     except urllib.error.HTTPError as e:

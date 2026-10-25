@@ -33,3 +33,4 @@ Thumbs.db
 # Логи и временные файлы
 *.log
 *.tmp
+check_ai_result.txt

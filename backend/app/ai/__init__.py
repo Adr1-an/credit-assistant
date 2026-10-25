@@ -30,6 +30,15 @@ def is_available() -> bool:
     return client.is_available()
 
 
+def _with_labels(question_sets: dict) -> dict:
+    """Копия question_sets с подписями вариантов: клиент нажимает «Аренда, уже нашёл», модель пишет RENT_FOUND."""
+    qs = json.loads(json.dumps(question_sets))
+    for q in qs.get("common", {}).get("questions", []) + [q for g in qs.get("goals", []) for q in g.get("questions", [])]:
+        if q.get("options"):
+            q["optionLabels"] = {o: validate.OPTION_LABELS.get(o, o) for o in q["options"]}
+    return qs
+
+
 def dialog_step(context: dict, history: list[dict], question_sets: dict) -> dict:
     """Шаги 5–6. Следующий вопрос или сводка. Возвращает DialogStepResult (llm-contract.md, задача 1)."""
     lines = []
@@ -42,7 +51,7 @@ def dialog_step(context: dict, history: list[dict], question_sets: dict) -> dict
             lines.append("Ассистент: " + guard.clean_client_text(m.get("text"), 1000))
     user = "\n".join([
         guard.data("context", context or {}),
-        guard.data("question_sets", question_sets or {}),
+        guard.data("question_sets", _with_labels(question_sets or {})),
         "<dialog>\n" + ("\n".join(lines) or "(диалог только начинается)") + "\n</dialog>",
         "Сделай следующий шаг диалога.",
     ])
@@ -86,7 +95,10 @@ def explain_contract(contract: dict, question: str) -> str:
     user = "\n".join([guard.data("contract", contract or {}), guard.client_text(question, 500),
                       "Ответь на вопрос клиента по этому договору."])
     raw = client.chat_json("explain_contract", _prompt("explain_contract"), user, validate.SCHEMAS["explain_contract"])
-    answer = validate.text_field(raw.get("answer"), "answer", 900)
+    answer = raw.get("answer")
+    if isinstance(answer, str):   # GigaChat иногда дописывает служебное поле в текст
+        answer = re.sub(r"\s*\(?foundInContract\s*[=:]\s*\w+\)?\.?", "", answer).strip()
+    answer = validate.text_field(answer, "answer", 900)
     # «пункт 5» — номер пункта на сайте, а не число из договора: его не считаем выдуманной цифрой
     n_clauses = len((contract or {}).get("clauses") or [])
 
@@ -109,4 +121,4 @@ def staff_summary(card: dict) -> str:
             card_json = json.dumps(safe, ensure_ascii=False, separators=(",", ":"))
     user = "\n".join([f"<card>{card_json}</card>", "Напиши сводку для специалиста."])
     raw = client.chat_json("staff_summary", _prompt("staff_summary"), user, validate.SCHEMAS["staff_summary"])
-    return validate.staff_summary(raw, card_json)
+    return validate.staff_summary(raw, card_json, safe)

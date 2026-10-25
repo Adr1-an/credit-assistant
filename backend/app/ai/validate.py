@@ -36,8 +36,10 @@ SCHEMAS = {
             "properties": {"rowId": {"type": "string"}, "category": {"type": "string"}}}}}},
     "explain_contract": {"type": "object", "additionalProperties": False, "required": ["answer", "foundInContract"],
                          "properties": {"answer": {"type": "string"}, "foundInContract": {"type": "boolean"}}},
-    "staff_summary": {"type": "object", "additionalProperties": False, "required": ["points"],
-                      "properties": {"points": {"type": "array", "items": {"type": "string"}}}},
+    # По полю на тему: GigaChat заполняет поля надёжнее, чем пишет нужное число пунктов в массиве
+    "staff_summary": {"type": "object", "additionalProperties": False,
+                      "required": ["risk", "score", "statement", "offer", "missing"],
+                      "properties": {k: NULLABLE_STR for k in ("risk", "score", "statement", "offer", "missing")}},
 }
 
 
@@ -64,6 +66,30 @@ LIMITS = {
     "cashgap.when": (1, 365), "start.experience": (0, 80), "location.staff": (0, 500),
 }
 TYPE_LIMITS = {"money": (0, 100_000_000), "months": (1, 120), "number": (0, 500)}
+# Подписи кнопок для вопросов с выбором (коды — из question-sets.json; подписи — только для показа клиенту)
+OPTION_LABELS = {
+    "NEW": "Новое", "USED": "Б/у",
+    "REPLACEMENT": "Замена старого", "EXPANSION": "Расширение",
+    "OWN": "Своё помещение", "RENT_FOUND": "Аренда, уже нашёл", "RENT_NOT_FOUND": "Аренда, ещё ищу",
+    "NOT_NEEDED": "Помещение не нужно",
+}
+UNKNOWN_LABEL = "Не знаю"
+
+
+def fixed_replies(q: dict) -> list[str] | None:
+    """Кнопки для вопроса с выбором или да/нет — всегда одинаковые, не от модели."""
+    if q["type"] == "choice":
+        out = [OPTION_LABELS.get(o, o) for o in q.get("options", [])]
+    elif q["type"] == "boolean":
+        out = ["Да", "Нет"]
+    else:
+        return None
+    if q.get("unknownAllowed"):
+        out.append(UNKNOWN_LABEL)
+    return out[:5]
+
+
+CODE = re.compile(r"^[A-Z][A-Z0-9_]*$")
 OKVED = re.compile(r"^\d{2}(\.\d{1,2}){0,2}$")
 
 
@@ -141,6 +167,9 @@ def _answers(raw, allowed: dict, where: str) -> list:
 def dialog_step(r: dict, question_sets: dict) -> dict:
     goals_qs = {g["goalType"]: {q["id"]: q for q in g["questions"]} for g in question_sets.get("goals", [])}
     common_qs = {q["id"]: q for q in question_sets.get("common", {}).get("questions", [])}
+    for k in ("summaryText", "currentQuestionId"):
+        if isinstance(r.get(k), str) and r[k].strip().lower() in ("", "null", "none"):
+            r[k] = None   # GigaChat иногда пишет null строкой
     state = r.get("state")
     if state not in ("ASKING", "SUMMARY", "ESCALATED"):
         fail("неизвестное состояние")
@@ -163,10 +192,12 @@ def dialog_step(r: dict, question_sets: dict) -> dict:
         seen.add(gt)
         goals.append({"goalType": gt, "answers": _answers(g.get("answers", []), goals_qs[gt], gt)})
     common = _answers(col.get("commonAnswers", []), common_qs, "common")
-    if state != "ESCALATED" and not goals:
-        fail("нет ни одной цели")
+    if state == "SUMMARY" and not goals:
+        fail("сводка без целей")
     qid = r.get("currentQuestionId")
-    if state == "ASKING":
+    if state == "ASKING" and not goals:
+        qid = None   # уточняющий вопрос «на что нужны деньги?»; через 2 сообщения сервер сам ставит ESCALATED
+    elif state == "ASKING":
         allowed = set(common_qs) | {q for g in goals for q in goals_qs[g["goalType"]]}
         if qid not in allowed:
             fail(f"вопрос {qid!r} не из целей клиента")
@@ -175,7 +206,12 @@ def dialog_step(r: dict, question_sets: dict) -> dict:
     replies = r.get("quickReplies") or []
     if not isinstance(replies, list):
         replies = []
-    replies = [guard.clean_client_text(x.strip(), 40) for x in replies if isinstance(x, str) and x.strip()][:4]
+    all_qs = {**common_qs, **{k: v for g in goals_qs.values() for k, v in g.items()}}
+    fixed = fixed_replies(all_qs[qid]) if qid in all_qs else None
+    if fixed is not None:
+        replies = fixed
+    replies = [guard.clean_client_text(x.strip(), 40) for x in replies
+               if isinstance(x, str) and x.strip() and not CODE.match(x.strip())][:5]   # коды вроде REPLACEMENT не показываем
     return {"state": state, "assistantText": text, "currentQuestionId": qid, "quickReplies": replies,
             "collected": {"source": "AI", "goals": goals, "commonAnswers": common}, "summaryText": summary}
 
@@ -232,12 +268,64 @@ def explain_contract(r: dict, contract_text: str, question: str) -> str:
     return ans
 
 
-def staff_summary(r: dict, card_text: str) -> str:
-    pts = r.get("points")
-    if not isinstance(pts, list) or not 3 <= len(pts) <= 5:
-        fail("нужно 3–5 пунктов")
+SUMMARY_FIELDS = ("risk", "score", "statement", "offer", "missing")
+BLOCK_MAX = {"BUSINESS": 40, "OWNER": 30, "IDEA": 20, "INDUSTRY": 10}   # scoring-model-v1
+BLOCK_RU = {"BUSINESS": "Бизнес", "OWNER": "Владелец", "IDEA": "Идея", "INDUSTRY": "Отрасль"}
+ZONE_RU = {"GREEN": "зелёная", "YELLOW": "жёлтая", "RED": "красная"}
+
+
+def _money(n) -> str:
+    return f"{int(n):,}".replace(",", " ") + " ₽"
+
+
+def card_facts(card: dict) -> list[str]:
+    """Пункты, которые код собирает сам из карточки, если модель написала мало. Только готовые факты."""
+    out = []
+    score = card.get("score") or {}
+    for f in (score.get("flags") or [])[:2]:
+        if isinstance(f, dict) and f.get("text"):
+            out.append(f"Флаг для проверки: {f['text']}.")
+    if isinstance(score.get("total"), (int, float)):
+        z = ZONE_RU.get(score.get("zone"), score.get("zone") or "")
+        out.append(f"Баллы: {score['total']} из 100" + (f", зона {z}." if z else "."))
+    blocks = score.get("blocks") or {}
+    shares = {b: blocks[b] / mx for b, mx in BLOCK_MAX.items() if isinstance(blocks.get(b), (int, float))}
+    if shares and min(shares.values()) < 1:
+        b = min(shares, key=shares.get)
+        out.append(f"Меньше всего баллов в блоке «{BLOCK_RU[b]}»: {blocks[b]} из {BLOCK_MAX[b]}.")
+    st = card.get("statement") or card.get("statementSummary") or {}
+    if isinstance(st, dict) and isinstance(st.get("avgMonthlyIncome"), (int, float)):
+        line = f"По выписке средний доход {_money(st['avgMonthlyIncome'])} в месяц"
+        if isinstance(st.get("avgMonthlyExpense"), (int, float)):
+            line += f", расходы {_money(st['avgMonthlyExpense'])}"
+        out.append(line + ".")
+    rec = card.get("recommendation") or {}
+    if isinstance(rec, dict) and rec.get("text"):
+        out.append(f"Подсказка системы: {rec['text'].rstrip('.')}.")
+    return out
+
+
+def _words(t: str) -> set[str]:
+    return {w[:6] for w in re.findall(r"[а-яёa-z]{5,}", t.lower())}
+
+
+def _similar(a: str, b: str) -> bool:
+    """Пункты про одно и то же (2+ общих слова) — не повторяем."""
+    return len(_words(a) & _words(b)) >= 2
+
+
+def staff_summary(r: dict, card_text: str, card: dict | None = None) -> str:
+    if "points" in r:   # старый формат ответа — тоже принимаем
+        pts = r.get("points")
+        if isinstance(pts, str):
+            pts = [x.strip(" •-*\t") for x in re.split(r"\n+", pts)]
+        pts = pts if isinstance(pts, list) else []
+    else:
+        pts = [r.get(k) for k in SUMMARY_FIELDS]
     out = []
     for p in pts:
+        if not isinstance(p, str) or p.strip().lower() in ("", "null", "none", "нет", "нет данных"):
+            continue
         p = text_field(p, "пункт", 300)
         if guard.has_decision(p) or re.search(r"гарантир", p, re.I):
             fail("ИИ дал решение вместо специалиста")
@@ -245,4 +333,13 @@ def staff_summary(r: dict, card_text: str) -> str:
         if extra:
             fail(f"в сводке числа, которых нет в карточке: {sorted(extra)}")
         out.append(p)
+    if card is not None and len(out) < 3:
+        for f in card_facts(card):
+            if len(out) >= 3:
+                break
+            if not any(_similar(f, o) for o in out):
+                out.append(f)
+    out = out[:5]
+    if len(out) < 3:
+        fail(f"нужно 3–5 пунктов, пришло {len(out)}")
     return "\n".join(f"• {p}" for p in out)
