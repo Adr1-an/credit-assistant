@@ -34,3 +34,8 @@ Thumbs.db
 *.log
 *.tmp
 check_ai_result.txt
+
+# Сертификаты скачиваются отдельно (certs/README.md)
+certs/*.crt
+certs/*.cer
+certs/*.pem

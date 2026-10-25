@@ -1,0 +1,80 @@
+# Запуск всего проекта одной командой:  docker compose up --build
+# Сайт — http://localhost:3000, кабинет сотрудника — http://localhost:3000/staff
+#
+# Без файла .env проект работает без ИИ (форма вместо чата) — так задумано.
+# С ИИ (GigaChat): заполните .env по образцу .env.example и запустите
+#   docker compose --profile ai up --build
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: navigator
+      POSTGRES_PASSWORD: navigator
+      POSTGRES_DB: navigator
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U navigator -d navigator"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  mocks:
+    build: ./mocks
+    ports:
+      - "8090:8090"
+
+  backend:
+    build: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://navigator:navigator@db:5432/navigator
+      MOCKS_URL: http://mocks:8090
+      CONTRACT_DIR: /contract
+      TESTS_DIR: /tests
+      DEMO_DIR: /tests
+      EVALUATION_DATE: ${EVALUATION_DATE:-2026-10-24}
+      LLM_ENABLED: ${LLM_ENABLED:-false}
+      # Внутри Docker прокси GigaChat доступен по имени gpt2giga.
+      # Для своей модели (например, Ollama) задайте в .env DOCKER_LLM_BASE_URL.
+      LLM_BASE_URL: ${DOCKER_LLM_BASE_URL:-http://gpt2giga:8091/v1}
+    volumes:
+      - ./contract:/contract:ro
+      - ./tests:/tests:ro
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+      mocks:
+        condition: service_started
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  # Прокси GigaChat. Запускается только с флагом --profile ai и нужен ключ в .env
+  gpt2giga:
+    image: ghcr.io/ai-forever/gpt2giga:latest
+    profiles: ["ai"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      GPT2GIGA_HOST: 0.0.0.0
+      GPT2GIGA_PORT: 8091
+    volumes:
+      - ./certs:/certs:ro
+    ports:
+      - "127.0.0.1:8091:8091"
+
+volumes:
+  db-data:
