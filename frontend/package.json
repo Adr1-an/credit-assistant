@@ -1,0 +1,36 @@
+{
+  "name": "alfa-smart-credit-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview --host 0.0.0.0",
+    "api:generate": "node scripts/generate-api.mjs",
+    "mock:api": "node scripts/mock-api.mjs",
+    "predev": "npm run api:generate",
+    "prebuild": "npm run api:generate",
+    "pretypecheck": "npm run api:generate",
+    "api:smoke": "node scripts/api-smoke.mjs",
+    "api:contract-check": "node scripts/contract-audit.mjs",
+    "test:integration-tools": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+  "devDependencies": {
+    "@stoplight/prism-cli": "5.16.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "5.2.0",
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.7"
+  },
+  "scarfSettings": {
+    "enabled": false
+  }
+}
