@@ -56,6 +56,9 @@ def _pct(x: Fraction) -> str:
     return f"{v:g}".replace(".", ",")
 
 
+TIER_TEXT = {"LOW": "низкий", "MEDIUM": "средний", "HIGH": "высокий"}
+
+
 def factor(code: str, block: str, points: int, max_points: int, text: str) -> dict:
     lost = max_points - points
     return {"code": code, "block": block, "points": points, "maxPoints": max_points,
@@ -244,7 +247,7 @@ def calculate(has_business: bool, check_data: dict, statement: dict | None, goal
             manual.append("INDUSTRY_DATA_MISSING")
         tier = ind.get("riskTier")
         factors.append(factor("INDUSTRY_BASE_RISK", "INDUSTRY", SCORING["INDUSTRY_BASE_RISK"].get(tier, 0), 4,
-                              f"категория риска отрасли — {tier}"))
+                              f"категория риска отрасли — {TIER_TEXT.get(tier, tier)}"))
         factors.append(factor("INDUSTRY_REVENUE_TREND", "INDUSTRY",
                               0 if g is None else _ge(Fraction(str(g)), SCORING["INDUSTRY_REVENUE_TREND"]), 3,
                               "нет данных о динамике отрасли" if g is None else f"динамика отрасли за год — {g:g}%"))

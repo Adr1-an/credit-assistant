@@ -19,6 +19,8 @@ export function DialogStep({ application, onSaved, onUpdated }: {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [formNote, setFormNote] = useState('');
+  const [fresh, setFresh] = useState(false);       // «Заполнить заново»: форма без ответов из чата
+  const [editing, setEditing] = useState(false);   // «Исправить»: в сводке снова показываем поле ввода
 
   useEffect(() => {
     let active = true;
@@ -44,10 +46,12 @@ export function DialogStep({ application, onSaved, onUpdated }: {
     setWorking(true); setError('');
     try {
       const answer = await api.sendDialogMessage(application.id, { text: text.trim().slice(0, 2000) });
-      setState(answer); setInput('');
+      setState(answer); setInput(''); setEditing(false);
     } catch (caught) {
       if (caught instanceof ApiError && caught.code === 'AI_UNAVAILABLE') {
-        setFormNote('Помощник сейчас не смог ответить. Мы перенесли в форму то, что вы уже рассказали, — проверьте и дополните.');
+        setFormNote(state?.collected?.goals?.length
+          ? 'Помощник сейчас не смог ответить. Мы перенесли в форму то, что вы уже рассказали, — проверьте и дополните.'
+          : 'Помощник сейчас недоступен. Выберите цель и ответьте на вопросы в форме.');
         setMode('form');
       }
       else setError(caught instanceof ApiError ? caught.message : 'Не удалось отправить сообщение.');
@@ -78,8 +82,8 @@ export function DialogStep({ application, onSaved, onUpdated }: {
 
   if (mode === 'loading') return <Spinner label="Проверяем доступность помощника…" />;
   // Что уже собрал чат: при переходе на форму цели и ответы подставляются, а не теряются.
-  const collectedGoals = (state?.collected?.goals ?? []).map((g) => g.goalType);
-  const collectedValues = valuesFromAnswers([
+  const collectedGoals = fresh ? [] : (state?.collected?.goals ?? []).map((g) => g.goalType);
+  const collectedValues = fresh ? {} : valuesFromAnswers([
     ...(state?.collected?.goals ?? []).flatMap((g) => g.answers ?? []),
     ...(state?.collected?.commonAnswers ?? []),
   ]);
@@ -104,7 +108,12 @@ export function DialogStep({ application, onSaved, onUpdated }: {
       {assistantText && assistantText !== lastAssistant?.text ? <div className="dialog-step__message dialog-step__message--assistant"><strong>Помощник</strong><p>{assistantText}</p></div> : null}
     </div>
     {state?.state === 'SUMMARY' ? <div className="goal-question__summary"><h3>Проверьте сводку</h3><p>{state.summaryText ?? 'Подтвердите собранные ответы перед расчётом сметы.'}</p>
-      {state.collected ? <Button loading={working} onClick={() => void confirmSummary()}>Всё верно</Button> : <Notice tone="info">Не удалось получить собранные ответы. Заполните, пожалуйста, обычную форму.</Notice>}
+      {state.collected ? <div className="flow-step__actions">
+        <Button loading={working} onClick={() => void confirmSummary()}>Всё верно</Button>
+        <Button variant="secondary" disabled={working} onClick={() => setEditing(true)}>Исправить</Button>
+        <Button variant="quiet" disabled={working} onClick={() => { setFresh(true); setFormNote(''); setMode('form'); }}>Заполнить заново</Button>
+      </div> : <Notice tone="info">Не удалось получить собранные ответы. Заполните, пожалуйста, обычную форму.</Notice>}
+      {editing ? <p className="goal-question__hint">Напишите, что исправить, например: «сумма не 300 000, а 350 000» — помощник обновит сводку.</p> : null}
     </div> : null}
     {escalated ? <div className="goal-question__card"><h3>Не удалось определить цель. Выберите подходящий вариант</h3>
       {!choices.length ? <Notice tone="info">Варианты целей временно недоступны. Вы можете передать задачу сотруднику или попробовать обычную форму.</Notice> : null}
@@ -112,7 +121,7 @@ export function DialogStep({ application, onSaved, onUpdated }: {
       <label className="goal-question__textarea"><span>Если ни один вариант не подходит, опишите задачу сотруднику (необязательно)</span><textarea value={input} onChange={(e) => setInput(e.target.value)} maxLength={2000} /></label>
       <Button variant="secondary" loading={working} onClick={() => void handoff()}>Передать сотруднику</Button>
     </div> : null}
-    {state?.state === 'ASKING' ? <>
+    {state?.state === 'ASKING' || (state?.state === 'SUMMARY' && editing) ? <>
       {state.quickReplies?.length ? <div className="goal-question__options">{state.quickReplies.map((reply, index) => <Button key={`${reply}-${index}`} variant="secondary" disabled={working} onClick={() => void send(reply)}>{reply}</Button>)}</div> : null}
       <form onSubmit={(event) => { event.preventDefault(); void send(input); }}><label className="goal-question__textarea"><span>Ваш ответ</span><textarea rows={3} value={input} maxLength={2000} onChange={(event) => setInput(event.target.value)} placeholder="Напишите своими словами…" /></label><Button type="submit" loading={working} disabled={!input.trim()}>Отправить ответ</Button></form>
     </> : null}

@@ -27,7 +27,7 @@
 
 .ui-field { display: flex; flex-direction: column; gap: 9px; max-width: 530px; }
 .ui-field__label { font-weight: 700; font-size: 16px; }
-.ui-field__control { min-height: 62px; border: 2px solid transparent; border-radius: var(--radius-field); background: #fff; display: flex; align-items: center; overflow: hidden; transition: border-color .17s ease; }
+.ui-field__control { min-height: 62px; border: 2px solid #c9cbd1; border-radius: var(--radius-field); background: #fff; display: flex; align-items: center; overflow: hidden; transition: border-color .17s ease; }
 .ui-field__control:focus-within { border-color: var(--color-ink); }
 .ui-field__control--error, .ui-field__control--error:focus-within { border-color: var(--color-red); }
 .ui-field__control--disabled { opacity: .65; }
@@ -107,3 +107,8 @@
   .ui-modal__footer .ui-button { flex: 1; }
   .ui-tracker__item { padding-bottom: 20px; }
 }
+
+/* Поле ввода видно всегда; стрелки у числовых полей видны без наведения */
+.ui-field__control:hover { border-color: #9a9ca3; }
+input[type='number']::-webkit-inner-spin-button, input[type='number']::-webkit-outer-spin-button { opacity: 1; height: 44px; cursor: pointer; }
+input[type='number'] { -moz-appearance: number-input; }

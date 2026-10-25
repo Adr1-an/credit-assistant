@@ -119,3 +119,7 @@
 @media (max-width: 1080px) { .staff-list-card { grid-template-columns: 1.3fr 1fr; }.staff-list-card > .ui-button { justify-self: start; }.staff-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }.staff-decision__options { grid-template-columns: repeat(2,1fr); } }
 @media (max-width: 760px) { .staff-header__inner { flex-direction: column; align-items: flex-start; padding: 18px 0; gap: 15px; }.staff-overview { grid-template-columns: 1fr; gap: 0; }.staff-list-card { grid-template-columns: 1fr; gap: 17px; }.staff-list-card > .ui-button { width: 100%; }.staff-heading__icon { display: none; }.staff-heading--detail { flex-direction: column; align-items: flex-start; }.staff-facts { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 520px) { .staff-container { width: min(100% - 28px,1230px); }.staff-list, .staff-detail { padding-top: 24px; }.staff-toolbar > label { min-width: 100%; }.staff-toolbar .ui-button { width: 100%; }.staff-section { padding: 20px; border-radius: 22px; }.staff-stats { grid-template-columns: 1fr; }.staff-decision__options { grid-template-columns: 1fr; }.staff-decision__fields { grid-template-columns: 1fr; }.staff-header nav button { padding: 10px 8px; font-size: 12px; }.staff-facts { grid-template-columns: 1fr; }.staff-estimate__total { flex-direction: column; }.staff-chart { padding: 12px; }.staff-chart__table { font-size: 11px; } }
+
+.staff-factor-block { margin-top: 20px; }
+.staff-factor-block h3 { margin: 0 0 10px; font-size: 18px; }
+.staff-factor-block h3 small { font-weight: 400; }

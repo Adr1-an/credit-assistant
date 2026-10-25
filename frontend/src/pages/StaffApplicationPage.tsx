@@ -4,7 +4,7 @@ import type { StaffApplicationCard, StaffDecision } from '../api/client';
 import { Button, Notice, Spinner } from '../components';
 import { previewStaffCard } from './staffDemo';
 import previewQuestions from '../../contract/question-sets.json';
-import { actionText, basketText, checkSources, checkStates, dateText, errorText, rub, statusText, timeText, zoneText } from './staffHelpers';
+import { actionText, basketText, blockText, checkSources, checkStates, dateText, errorText, factorText, rub, splitReason, statusText, timeText, zoneText } from './staffHelpers';
 
 type Props = { id: string; preview?: boolean; onBack: () => void };
 type DecisionAction = StaffDecision['action'];
@@ -47,8 +47,23 @@ function MonthlyChart({ monthly }: { monthly: NonNullable<NonNullable<StaffAppli
   </div>;
 }
 
+// Что произойдёт с заявкой и что увидит клиент — по каждому решению (product-rules-v1.md, раздел 6).
+const ACTION_HINT: Record<DecisionAction, string> = {
+  APPROVE: 'Клиент получит предложения из блока «Предложения» ниже (ставка при решении сотрудника — на 2 п.п. выше автоматической) и сможет выбрать одно.',
+  CHANGE_TERMS: 'Укажите сумму и, если нужно, срок. Система пересчитает смету под эту сумму, и клиент получит одно предложение на этих условиях.',
+  REQUEST_INFO: 'Клиент увидит ваш вопрос и ответит в кабинете. После ответа заявка вернётся к вам.',
+  REJECT: 'Клиент увидит отказ и ваши советы (если добавите). Решение окончательное.',
+};
+
 function DecisionPanel({ id, preview, card, onUpdated }: { id: string; preview: boolean; card: StaffApplicationCard; onUpdated: (next: StaffApplicationCard) => void }) {
-  const [action, setAction] = useState<DecisionAction>('APPROVE');
+  // «Одобрить» возможно, только если система уже посчитала предложения. Иначе — «Изменить условия».
+  const approveAvailable = !card.handoff && Array.isArray(card.offers) && card.offers.length > 0;
+  const approveBlockedText = card.handoff
+    ? 'Клиент передал заявку без цели, готового предложения нет. Выберите «Изменить условия» и укажите сумму и срок.'
+    : 'Система не смогла рассчитать предложение для этой заявки, поэтому одобрять пока нечего. Выберите «Изменить условия» и укажите сумму и срок.';
+  const recommended = card.recommendation?.action;
+  const initialAction: DecisionAction = recommended === 'APPROVE' && !approveAvailable ? 'CHANGE_TERMS' : recommended ?? (approveAvailable ? 'APPROVE' : 'CHANGE_TERMS');
+  const [action, setAction] = useState<DecisionAction>(initialAction);
   const [comment, setComment] = useState('');
   const [amount, setAmount] = useState('');
   const [term, setTerm] = useState('');
@@ -58,33 +73,30 @@ function DecisionPanel({ id, preview, card, onUpdated }: { id: string; preview: 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const canDecide = card.application.status === 'MANUAL_REVIEW';
-  const needsTerms = Boolean(card.handoff) && action === 'APPROVE';
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (preview || !canDecide || working) return;
     setError(''); setSuccess('');
-    if (!comment.trim()) { setError('Напишите комментарий к решению.'); return; }
+    if (action === 'APPROVE' && !approveAvailable) { setError(approveBlockedText); return; }
+    if (!comment.trim()) { setError('Напишите комментарий к решению — он попадёт в историю заявки.'); return; }
     const payload: StaffDecision = { action, comment: comment.trim() };
-    if (action === 'CHANGE_TERMS' || needsTerms) {
-      if (!amount.trim() && !term.trim()) { setError('Укажите новые условия: сумму или срок.'); return; }
-      if ((amount && (!Number.isSafeInteger(Number(amount)) || Number(amount) <= 0)) ||
-          (term && (!Number.isSafeInteger(Number(term)) || Number(term) <= 0))) {
-        setError('Сумма и срок должны быть положительными целыми числами.'); return;
-      }
-      payload.newTerms = { ...(amount ? { amount: Number(amount) } : {}), ...(term ? { termMonths: Number(term) } : {}) };
+    if (action === 'CHANGE_TERMS') {
+      if (!amount.trim() || !Number.isSafeInteger(Number(amount)) || Number(amount) <= 0) { setError('Укажите сумму — целое число рублей больше нуля.'); return; }
+      if (term && (!Number.isSafeInteger(Number(term)) || Number(term) < 1 || Number(term) > 120)) { setError('Срок — целое число месяцев от 1 до 120.'); return; }
+      payload.newTerms = { amount: Number(amount), ...(term ? { termMonths: Number(term) } : {}) };
     }
     if (action === 'REQUEST_INFO') {
-      if (!infoRequestText.trim()) { setError('Напишите, какие сведения нужны клиенту.'); return; }
+      if (!infoRequestText.trim()) { setError('Напишите, что нужно уточнить у клиента.'); return; }
       payload.infoRequestText = infoRequestText.trim();
     }
     if (action === 'REJECT') payload.advice = advice.map((x) => x.trim()).filter(Boolean).slice(0, 3);
     setWorking(true);
     try {
       const updated = await api.makeStaffDecision(id, payload);
-      onUpdated(updated); // Отображаем ТОЛЬКО статус и данные из ответа сервера.
+      onUpdated(updated);
       setComment(''); setAmount(''); setTerm(''); setInfoRequestText(''); setAdvice(['', '', '']);
-      setSuccess('Решение сохранено сервером. Карточка и история обновлены из ответа API.');
+      setSuccess(`Решение сохранено. Статус заявки: «${statusText[updated.application.status]}».`);
     } catch (reason) { setError(errorText(reason)); }
     finally { setWorking(false); }
   }
@@ -93,17 +105,23 @@ function DecisionPanel({ id, preview, card, onUpdated }: { id: string; preview: 
     <div className="staff-section__heading"><div><p className="eyebrow">Решение специалиста</p><h2 id="staff-decision-title">Как поступим с заявкой?</h2></div></div>
     {preview ? <Notice tone="info">Предпросмотр: можно менять варианты и заполнять форму, но отправка решений отключена.</Notice> : null}
     {!canDecide ? <Notice tone="info">Сейчас статус «{statusText[card.application.status]}». Решение можно принять, только когда заявка в статусе «На рассмотрении».</Notice> : null}
+    {canDecide && card.recommendation?.text ? <Notice tone="info">Подсказка системы{recommended ? ` (${actionText[recommended].toLowerCase()})` : ''}: {card.recommendation.text}</Notice> : null}
     <form onSubmit={(event) => void submit(event)} noValidate>
       <fieldset className="staff-decision__options" disabled={!canDecide || working}><legend>Выберите одно действие</legend>
-        {(['APPROVE', 'CHANGE_TERMS', 'REQUEST_INFO', 'REJECT'] as DecisionAction[]).map((option) => <label key={option} className={`staff-decision__option ${action === option ? 'staff-decision__option--active' : ''}`}><input type="radio" checked={action === option} onChange={() => { setAction(option); setError(''); }} name="decision" value={option} /><span>{actionText[option]}</span></label>)}
+        {(['APPROVE', 'CHANGE_TERMS', 'REQUEST_INFO', 'REJECT'] as DecisionAction[]).map((option) => {
+          const off = option === 'APPROVE' && !approveAvailable;
+          return <label key={option} className={`staff-decision__option ${action === option ? 'staff-decision__option--active' : ''}`} style={off ? { opacity: 0.5 } : undefined} title={off ? approveBlockedText : undefined}><input type="radio" checked={action === option} disabled={off} onChange={() => { setAction(option); setError(''); }} name="decision" value={option} /><span>{actionText[option]}{option === recommended ? ' · рекомендовано' : ''}</span></label>;
+        })}
       </fieldset>
-      {(action === 'CHANGE_TERMS' || needsTerms) ? <div className="staff-decision__fields"><label>Новая сумма, ₽ <input type="number" min="1" step="1" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="Введите сумму" disabled={!canDecide} /></label><label>Новый срок, месяцев <input type="number" min="1" step="1" value={term} onChange={(event) => setTerm(event.target.value)} placeholder="Введите срок" disabled={!canDecide} /></label><p className="staff-quiet">Укажите хотя бы одно условие. Окончательное предложение сформирует сервер.</p></div> : null}
-      {action === 'REQUEST_INFO' ? <label className="staff-decision__full">Что нужно уточнить у клиента? <textarea value={infoRequestText} onChange={(event) => setInfoRequestText(event.target.value)} placeholder="Например: приложите выписку за последние 12 месяцев" rows={3} disabled={!canDecide} /></label> : null}
+      {!approveAvailable && canDecide ? <p className="staff-quiet">{approveBlockedText}</p> : null}
+      <p className="staff-quiet"><strong>Что будет:</strong> {ACTION_HINT[action]}</p>
+      {action === 'CHANGE_TERMS' ? <div className="staff-decision__fields"><label>Сумма, ₽ <span className="staff-required">*</span><input type="number" min="1" step="1" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder={card.estimate ? `Смета клиента: ${rub(card.estimate.total)}` : 'Например, 500000'} disabled={!canDecide} /></label><label>Срок, месяцев <input type="number" min="1" max="120" step="1" value={term} onChange={(event) => setTerm(event.target.value)} placeholder="Необязательно, 1–120" disabled={!canDecide} /></label><p className="staff-quiet">Сумма обязательна. Если срок не указать, останутся сроки продуктов по правилам банка.</p></div> : null}
+      {action === 'REQUEST_INFO' ? <label className="staff-decision__full">Что нужно уточнить у клиента? <span className="staff-required">*</span><textarea value={infoRequestText} onChange={(event) => setInfoRequestText(event.target.value)} placeholder={recommended === 'REQUEST_INFO' && card.recommendation?.text ? card.recommendation.text : 'Например: приложите выписку за последние 12 месяцев'} rows={3} disabled={!canDecide} /></label> : null}
       {action === 'REJECT' ? <div className="staff-decision__fields staff-decision__fields--stack"><p className="staff-quiet">Необязательно: до 3 понятных советов, которые увидит клиент.</p>{advice.map((value, i) => <label key={i}>Совет {i + 1}<input type="text" value={value} onChange={(event) => setAdvice((old) => old.map((x, j) => i === j ? event.target.value : x))} placeholder="Что клиенту можно сделать дальше" disabled={!canDecide} /></label>)}</div> : null}
-      <label className="staff-decision__full">Комментарий к решению <span className="staff-required">*</span><textarea required minLength={1} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Коротко объясните причину решения. Комментарий попадёт в историю." rows={4} disabled={!canDecide} /></label>
+      <label className="staff-decision__full">Комментарий к решению <span className="staff-required">*</span><textarea required minLength={1} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Коротко объясните причину решения. Клиент его не видит, комментарий попадёт в историю заявки." rows={4} disabled={!canDecide} /></label>
       {error ? <Notice tone="error">{error}</Notice> : null}
       {success ? <Notice tone="success">{success}</Notice> : null}
-      <Button type="submit" loading={working} disabled={preview || !canDecide || !comment.trim()}>{actionText[action]}</Button>
+      <Button type="submit" loading={working} disabled={preview || !canDecide || !comment.trim() || (action === 'APPROVE' && !approveAvailable)}>{actionText[action]}</Button>
     </form>
   </section>;
 }
@@ -152,8 +170,15 @@ export function StaffApplicationPage({ id, preview = false, onBack }: Props) {
         <section className="staff-section"><h2>Цели и ответы</h2>{card.goals?.goals?.length ? card.goals.goals.map((goal, i) => <div key={i} className="staff-goal"><h3>{labels[goal.goalType] ?? goal.goalType}</h3><dl className="staff-answer-list">{goal.answers.map((answer) => <div key={answer.questionId}><dt>{labels[answer.questionId] ?? answer.questionId}</dt><dd>{answer.value === null ? 'Не знаю' : String(answer.value)}</dd></div>)}</dl></div>) : <p className="staff-quiet">Цели не сохранены.</p>}{card.goals?.commonAnswers?.length ? <><h3>Общие ответы</h3><dl className="staff-answer-list">{card.goals.commonAnswers.map((answer) => <div key={answer.questionId}><dt>{labels[answer.questionId] ?? answer.questionId}</dt><dd>{answer.value === null ? 'Не знаю' : String(answer.value)}</dd></div>)}</dl></> : null}{card.goals?.clientText ? <p className="staff-client-text">Описание клиента: {card.goals.clientText}</p> : null}</section>
         <section className="staff-section"><h2>Смета</h2>{card.estimate ? <><div className="staff-estimate">{card.estimate.items.map((item) => <div key={item.id}><div><strong>{item.title}</strong><small>Источник: {sourceText[item.source]}{item.excluded ? ' · исключено' : ''}</small></div><span>{rub(item.amount)}</span></div>)}</div><div className="staff-estimate__total"><span>Итого по смете</span><strong>{rub(card.estimate.total)}</strong></div>{card.estimate.startSmallerSuggested ? <p className="staff-quiet">Система предлагает рассмотреть меньший масштаб проекта.</p> : null}</> : <p className="staff-quiet">Смета пока не рассчитана.</p>}</section>
       </div>
-      <section className="staff-section"><h2>Оценка риска <span className="staff-quiet staff-score-title">Только для сотрудника</span></h2>{score ? <><div className="staff-score"><strong>{score.total} <small>/ 100</small></strong><span className={`staff-tag staff-tag--${score.zone.toLowerCase()}`}>{zoneText[score.zone]} зона</span></div>{score.flags?.length ? <div className="staff-warnings"><strong>Факторы внимания</strong><ul>{score.flags.map((flag, i) => <li key={`${flag.code}-${i}`}>{flag.text} <small>({flag.basket})</small></li>)}</ul></div> : null}<div className="staff-factors">{score.factors.map((factor, i) => <div key={`${factor.code}-${i}`}><div><strong>{factor.block}</strong><p>{factor.reason}</p><small>{factor.code}</small></div><span>{factor.points} / {factor.maxPoints}</span></div>)}</div></> : <p className="staff-quiet">Оценка ещё не рассчитана.</p>}
-        <div className="staff-ai-summary"><h3>Сводка ИИ</h3>{card.aiSummary ? <p>{card.aiSummary}</p> : <><p>ИИ-сводки нет. Ниже — доступные причины из обычных правил:</p>{score?.flags?.length ? <ul>{score.flags.map((flag, i) => <li key={i}>{flag.text}</li>)}</ul> : score?.factors?.length ? <ul>{score.factors.map((factor, i) => <li key={i}>{factor.reason}</li>)}</ul> : <p className="staff-quiet">Данных для пояснения пока нет.</p>}</>}</div></section>
+      <section className="staff-section"><h2>Оценка риска <span className="staff-quiet staff-score-title">Только для сотрудника</span></h2>{score ? <><div className="staff-score"><strong>{score.total} <small>/ 100</small></strong><span className={`staff-tag staff-tag--${score.zone.toLowerCase()}`}>{zoneText[score.zone]} зона</span></div>{score.flags?.length ? <div className="staff-warnings"><strong>Факторы внимания</strong><ul>{score.flags.map((flag, i) => <li key={`${flag.code}-${i}`}>{flag.text} <small>({basketText[flag.basket] ?? flag.basket})</small></li>)}</ul></div> : null}<p className="staff-quiet">Баллы считают правила банка по данным проверок. По каждому пункту указано, откуда взяты данные и сколько баллов снято.</p>
+          {Object.keys(blockText).filter((b) => score.factors.some((f) => f.block === b)).map((b) => {
+            const list = score.factors.filter((f) => f.block === b);
+            const sum = list.reduce((n, f) => n + f.points, 0);
+            const max = list.reduce((n, f) => n + f.maxPoints, 0);
+            return <div key={b} className="staff-factor-block"><h3>{blockText[b].title} <small className="staff-quiet">— {sum} из {max}</small></h3>
+              <div className="staff-factors">{list.map((factor, i) => { const info = factorText[factor.code]; const r = splitReason(factor.reason); return <div key={`${factor.code}-${i}`} title={factor.code}><div><strong>{info?.title ?? factor.code}</strong><p>{r.text}{r.lost ? ` — снято ${r.lost} из ${factor.maxPoints}` : ' — максимум'}</p><small>Откуда данные: {info?.source ?? 'правила банка'}</small></div><span>{factor.points} / {factor.maxPoints}</span></div>; })}</div></div>;
+          })}</> : <p className="staff-quiet">Оценка ещё не рассчитана.</p>}
+        <div className="staff-ai-summary"><h3>Сводка ИИ</h3>{card.aiSummary ? <p>{card.aiSummary}</p> : <><p>ИИ-сводки нет. Ниже — доступные причины из обычных правил:</p>{score?.flags?.length ? <ul>{score.flags.map((flag, i) => <li key={i}>{flag.text}</li>)}</ul> : score?.factors?.length ? <ul>{score.factors.filter((f) => f.points < f.maxPoints).map((factor, i) => <li key={i}>{factorText[factor.code]?.title ?? factor.code}: {splitReason(factor.reason).text}</li>)}</ul> : <p className="staff-quiet">Данных для пояснения пока нет.</p>}</>}</div></section>
       {card.handoff ? <section className="staff-section" aria-label="Передача сотруднику"><h2>Цель не определена — передано сотруднику</h2>
         <p className="staff-quiet">Клиент передал заявку {timeText(card.handoff.at)}. Сметы и баллов для такой заявки может не быть.</p>
         {card.handoff.text ? <p className="staff-client-text">Сообщение клиента: {card.handoff.text}</p> : null}

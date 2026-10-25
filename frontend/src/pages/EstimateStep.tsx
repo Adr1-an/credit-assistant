@@ -17,8 +17,13 @@ const SAMPLE_ESTIMATE: Estimate = {
   ], total: 960000, startSmallerSuggested: false,
 };
 
+// Откуда взята сумма — словами для клиента.
 const SOURCE_NAME: Record<EstimateItem['source'], string> = {
-  CLIENT: 'Ваши ответы', STATEMENT: 'Данные выписки', INDUSTRY: 'Справочник отрасли', RULE: 'Расчёт по правилам',
+  CLIENT: 'вы указали в ответах', STATEMENT: 'посчитали по вашей выписке', INDUSTRY: 'средняя сумма для вашей отрасли', RULE: 'добавил банк по своим правилам',
+};
+// Пояснение для строк, которые добавил банк (product-rules-v1.md, раздел 3).
+const RULE_HINT: Partial<Record<EstimateItem['category'], string>> = {
+  BUFFER: 'Запас на непредвиденные расходы: 10% от суммы кредитов, но не больше 30% вашей средней месячной выручки. Оформляется овердрафтом — платите проценты, только если воспользуетесь. Можно исключить.',
 };
 
 function rubles(value: number): string { return `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(value)} ₽`; }
@@ -98,24 +103,24 @@ export function EstimateStep({ application, preview = false, onUpdated }: Props)
   }
 
   return <section className="flow-step estimate-step" aria-label="Смета финансирования">
-    <div className="flow-step__heading"><span className="flow-step__number">07</span><div><p className="eyebrow">Проверьте расходы</p><h2>Смета для вашей задачи</h2><p>Мы собрали расходы по статьям. Можно изменить сумму или убрать ненужную строку. После сохранения сервер пересчитает смету.</p></div></div>
-    {loading ? <Spinner label="Загружаем смету с сервера…" /> : null}
+    <div className="flow-step__heading"><span className="flow-step__number">07</span><div><p className="eyebrow">Проверьте расходы</p><h2>Смета для вашей задачи</h2><p>Мы собрали расходы по статьям. Можно изменить сумму или убрать ненужную строку — после сохранения смета пересчитается.</p></div></div>
+    {loading ? <Spinner label="Загружаем смету…" /> : null}
     {error ? <Notice tone="error">{error}</Notice> : null}
     {estimate && !loading ? <>
       {preview ? <Notice tone="info">Это синтетическая иллюстрация оформления. Все суммы и названия здесь примерные, не являются решением банка. Сохранение и отправка отключены.</Notice> : null}
       <div className="estimate-items">{estimate.items.map((item, index) => {
         const row = draft[item.id] ?? { amount: String(item.amount), excluded: false };
         return <div className={row.excluded ? 'estimate-item estimate-item--excluded' : 'estimate-item'} key={item.id}>
-          <div className="estimate-item__heading"><span className="estimate-item__number">{String(index + 1).padStart(2, '0')}</span><div><h3>{item.title}</h3><p>Источник суммы: <strong>{sourceName(item)}</strong></p>{item.note ? <p>{item.note}</p> : null}</div></div>
-          <div className="estimate-item__edit"><TextField label="Сумма, ₽" inputMode="numeric" type="number" min="0" step="1" value={row.amount} disabled={row.excluded} error={!row.excluded && !canUseMoney(row.amount) ? 'Укажите целую сумму от 0 ₽.' : undefined} onChange={(e) => { setDraft((prev) => ({ ...prev, [item.id]: { ...row, amount: e.target.value } })); setMessage(''); }} />
+          <div className="estimate-item__heading"><span className="estimate-item__number">{String(index + 1).padStart(2, '0')}</span><div><h3>{item.title}</h3><p>Откуда сумма: <strong>{sourceName(item)}</strong></p>{item.note ? <p>{item.note}</p> : item.source === 'RULE' && RULE_HINT[item.category] ? <p>{RULE_HINT[item.category]}</p> : null}</div></div>
+          <div className="estimate-item__edit"><TextField label="Сумма, ₽" inputMode="numeric" type="number" min="0" step="1000" value={row.amount} onFocus={(e) => e.target.select()} hint="Впишите новую сумму или измените стрелками (шаг 1 000 ₽)" disabled={row.excluded} error={!row.excluded && !canUseMoney(row.amount) ? 'Укажите целую сумму от 0 ₽.' : undefined} onChange={(e) => { setDraft((prev) => ({ ...prev, [item.id]: { ...row, amount: e.target.value } })); setMessage(''); }} />
             <label className="estimate-item__toggle"><input type="checkbox" checked={row.excluded} onChange={(e) => { setDraft((prev) => ({ ...prev, [item.id]: { ...row, excluded: e.target.checked } })); setMessage(''); }} />Исключить из сметы</label></div>
         </div>;
       })}</div>
       <div className="estimate-total"><span>{preview ? 'Итого в примере' : changed ? 'Итого до ваших изменений' : 'Итого по смете'}</span><strong>{rubles(preview ? previewTotal : estimate.total)}</strong></div>
-      {changed && !preview ? <Notice tone="info">Есть несохранённые изменения. После нажатия «Сохранить смету» сервер вернёт новую сумму. Здесь мы не рассчитываем кредит самостоятельно.</Notice> : null}
+      {changed && !preview ? <Notice tone="info">Есть несохранённые изменения. Нажмите «Сохранить изменения» — смета пересчитается.</Notice> : null}
       {estimate.startSmallerSuggested ? <Notice tone="info">По данным расчёта может быть безопаснее начать с меньшего масштаба. Можно проверить статьи сметы перед отправкой.</Notice> : null}
       {message ? <Notice tone="success">{message}</Notice> : null}
-      <div className="flow-step__actions"><Button disabled={preview || !changed || invalid} loading={busy} onClick={() => void save()}>Сохранить смету</Button><Button variant="secondary" disabled={preview || invalid || changed || !(application?.nextAction === 'SUBMIT' || application?.nextAction === 'REVIEW_ESTIMATE')} loading={busy} onClick={() => void submit()}>Отправить заявку на решение</Button></div>
+      <div className="flow-step__actions">{changed ? <Button disabled={preview || invalid} loading={busy} onClick={() => void save()}>Сохранить изменения</Button> : null}<Button variant="secondary" disabled={preview || invalid || changed || !(application?.nextAction === 'SUBMIT' || application?.nextAction === 'REVIEW_ESTIMATE')} loading={busy} onClick={() => void submit()}>Отправить заявку на решение</Button></div>
       {!preview && changed ? <p className="flow-step__fine">Сначала сохраните изменения в смете, затем отправьте заявку.</p> : null}
       {preview ? <p className="flow-step__fine">В предпросмотре поля редактируются локально. В реальной заявке итог возвращает сервер из PUT /estimate, а не браузер.</p> : null}
     </> : null}

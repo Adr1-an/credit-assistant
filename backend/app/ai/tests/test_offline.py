@@ -130,6 +130,14 @@ def run_all():
     setr(s3); r = ai.dialog_step({}, hist, QS)
     results.append(("OK " if r["collected"]["goals"][0]["answers"] == [{"questionId": "start.okved", "value": "10.71"}] else "ОШИБКА")
                    + " диалог: код ОКВЭД из справочника записан")
+    noq = {"state": "ASKING", "assistantText": "Понял, вы хотите купить оборудование.", "currentQuestionId": None, "quickReplies": [],
+           "collected": {"source": "AI", "goals": [{"goalType": "EQUIPMENT", "answers": []}], "commonAnswers": []}, "summaryText": None}
+    setr(noq); r = ai.dialog_step({}, hist, QS)
+    results.append(("OK " if r["currentQuestionId"] == "equipment.what" and "Что именно покупаете" in r["assistantText"] else "ОШИБКА")
+                   + " диалог: цель понята, но вопрос не назван → задаём первый обязательный: " + str((r["currentQuestionId"], r["assistantText"])))
+    other = json.loads(json.dumps(noq)); other["currentQuestionId"] = "tender.contract"
+    setr(other); r = ai.dialog_step({}, hist, QS)
+    results.append(("OK " if r["currentQuestionId"] == "equipment.what" else "ОШИБКА") + " диалог: вопрос чужой цели → свой вопрос")
     pct = json.loads(json.dumps(full)); pct["summaryText"] = "Проверьте, правильно ли я понял: новая точка, выручка вырастет на 20%."
     setr(pct); check("диалог: «20%» из слов клиента — не обещание", lambda: ai.dialog_step({}, hist, QS))
     rate = json.loads(json.dumps(full)); rate["summaryText"] = "Проверьте: кредит под 15% вам подойдёт."

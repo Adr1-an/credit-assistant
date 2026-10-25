@@ -239,7 +239,20 @@ def dialog_step(r: dict, question_sets: dict, okved_codes: set | None = None) ->
     elif state == "ASKING":
         allowed = set(common_qs) | {q for g in goals for q in goals_qs[g["goalType"]]}
         if qid not in allowed:
-            fail(f"вопрос {qid!r} не из целей клиента")
+            if qid is not None and qid not in all_qs:
+                fail(f"вопрос {qid!r} не из списка")   # выдуманный id — контракт, правило 3
+            # Модель поняла цель, но не назвала вопрос (или взяла вопрос чужой цели):
+            # задаём сами следующий вопрос из целей клиента и дописываем его к её тексту.
+            have = {a["questionId"] for g in goals for a in g["answers"]} | {a["questionId"] for a in common}
+            nxt = _missing_required(goals, goals_qs, common_qs, common) or next(
+                (q for q in [q for g in goals for q in goals_qs[g["goalType"]]] + list(common_qs) if q not in have), None)
+            if nxt is None:
+                fail("нет следующего вопроса")
+            dropped.append(f"вопрос {qid!r} не назван или не из целей клиента — задаём {nxt}")
+            qid = nxt
+            q_text = all_qs[nxt]["text"]
+            if q_text.rstrip("?").lower() not in text.lower():
+                text = (text.rstrip() + " " + q_text).strip()[:600]
     else:
         qid = None
     # кнопки модели относятся к её вопросу; если вопрос заменили выше — её кнопки не показываем
@@ -253,7 +266,7 @@ def dialog_step(r: dict, question_sets: dict, okved_codes: set | None = None) ->
     replies = [guard.clean_client_text(x.strip(), reply_len) for x in replies
                if isinstance(x, str) and x.strip() and not CODE.match(x.strip())][:5]   # коды вроде REPLACEMENT не показываем
     for d in dropped:
-        log.warning("ИИ (диалог): часть ответа убрана — %s", d)
+        log.warning("ИИ (диалог): ответ поправлен — %s", d)
     return {"state": state, "assistantText": text, "currentQuestionId": qid, "quickReplies": replies,
             "collected": {"source": "AI", "goals": goals, "commonAnswers": common}, "summaryText": summary}
 
