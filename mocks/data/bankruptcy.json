@@ -1,0 +1,114 @@
+{
+  "990001000164": {
+    "inn": "990001000164",
+    "inProcedure": false,
+    "stage": null,
+    "startedAt": null,
+    "completedAt": null
+  },
+  "990001000238": {
+    "inn": "990001000238",
+    "inProcedure": false,
+    "stage": null,
+    "startedAt": null,
+    "completedAt": null
+  },
+  "990001000301": {
+    "inn": "990001000301",
+    "inProcedure": false,
+    "stage": null,
+    "startedAt": null,
+    "completedAt": null
+  },
+  "990001000485": {
+    "inn": "990001000485",
+    "inProcedure": true,
+    "stage": "REALIZATION",
+    "startedAt": "2026-01-10",
+    "completedAt": null
+  },
+  "990001000559": {
+    "inn": "990001000559",
+    "inProcedure": false,
+    "stage": null,
+    "startedAt": null,
+    "completedAt": null
+  },
+  "990001000622": {
+    "inn": "990001000622",
+    "inProcedure": false,
+    "stage": null,
+    "startedAt": null,
+    "completedAt": null
+  },
+  "990001000703": {
+    "inn": "990001000703",
+    "inProcedure": false,
+    "stage": null,
+    "startedAt": null,
+    "completedAt": null
+  },
+  "990001000870": {
+    "inn": "990001000870",
+    "inProcedure": false,
+    "stage": null,
+    "startedAt": null,
+    "completedAt": null
+  },
+  "990001000943": {
+    "inn": "990001000943",
+    "inProcedure": false,
+    "stage": "COMPLETED",
+    "startedAt": "2019-02-01",
+    "completedAt": "2024-01-15"
+  },
+  "990001001048": {
+    "inn": "990001001048",
+    "inProcedure": false,
+    "stage": null,
+    "startedAt": null,
+    "completedAt": null
+  },
+  "990001010596": {
+    "inn": "990001010596",
+    "inProcedure": false,
+    "stage": null,
+    "startedAt": null,
+    "completedAt": null
+  },
+  "990001011222": {
+    "inn": "990001011222",
+    "inProcedure": false,
+    "stage": null,
+    "startedAt": null,
+    "completedAt": null
+  },
+  "990001011938": {
+    "inn": "990001011938",
+    "inProcedure": false,
+    "stage": null,
+    "startedAt": null,
+    "completedAt": null
+  },
+  "990001012674": {
+    "inn": "990001012674",
+    "inProcedure": false,
+    "stage": null,
+    "startedAt": null,
+    "completedAt": null
+  },
+  "990001013300": {
+    "inn": "990001013300",
+    "inProcedure": false,
+    "stage": "COMPLETED",
+    "startedAt": "2020-01-15",
+    "completedAt": "2021-10-24"
+  },
+  "990001014047": {
+    "inn": "990001014047",
+    "inProcedure": false,
+    "stage": "COMPLETED",
+    "startedAt": "2020-01-15",
+    "completedAt": "2021-10-25"
+  }
+}

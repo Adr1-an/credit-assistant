@@ -1,0 +1,215 @@
+{
+  "9940 000101": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Кузнецова",
+    "firstName": "Елена",
+    "middleName": "Андреевна",
+    "birthDate": "1988-05-20",
+    "issueDate": "2018-06-14"
+  },
+  "9940 000102": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Смирнов",
+    "firstName": "Алексей",
+    "middleName": "Викторович",
+    "birthDate": "1989-02-15",
+    "issueDate": "2019-04-10"
+  },
+  "9940 000103": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Белова",
+    "firstName": "Надежда",
+    "middleName": "Игоревна",
+    "birthDate": "1986-03-11",
+    "issueDate": "2016-04-15"
+  },
+  "9940 000104": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Ковалёв",
+    "firstName": "Михаил",
+    "middleName": "Олегович",
+    "birthDate": "1984-06-01",
+    "issueDate": "2014-07-21"
+  },
+  "9940 000105": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Романов",
+    "firstName": "Иван",
+    "middleName": "Сергеевич",
+    "birthDate": "1993-09-14",
+    "issueDate": "2020-10-02"
+  },
+  "9940 000106": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Орлова",
+    "firstName": "Мария",
+    "middleName": "Дмитриевна",
+    "birthDate": "1995-12-17",
+    "issueDate": "2021-02-15"
+  },
+  "9940 000107": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Соловьёв",
+    "firstName": "Пётр",
+    "middleName": "Николаевич",
+    "birthDate": "1982-10-09",
+    "issueDate": "2013-03-12"
+  },
+  "9940 000108": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Сидоров",
+    "firstName": "Артём",
+    "middleName": "Павлович",
+    "birthDate": "1987-05-05",
+    "issueDate": "2018-06-14"
+  },
+  "9940 000109": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Васильева",
+    "firstName": "Ольга",
+    "middleName": "Петровна",
+    "birthDate": "1984-08-29",
+    "issueDate": "2016-07-24"
+  },
+  "9940 000110": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Фёдорова",
+    "firstName": "Дарья",
+    "middleName": "Александровна",
+    "birthDate": "1985-10-21",
+    "issueDate": "2017-11-23"
+  },
+  "9940 000111": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Гусев",
+    "firstName": "Роман",
+    "middleName": "Ильич",
+    "birthDate": "1990-04-12",
+    "issueDate": "2015-05-20"
+  },
+  "9940 000112": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Лебедева",
+    "firstName": "Анна",
+    "middleName": "Сергеевна",
+    "birthDate": "1991-07-07",
+    "issueDate": "2016-08-01"
+  },
+  "9940 000113": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Морозов",
+    "firstName": "Денис",
+    "middleName": "Андреевич",
+    "birthDate": "1988-01-30",
+    "issueDate": "2013-02-15"
+  },
+  "9940 000114": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Никитина",
+    "firstName": "Ирина",
+    "middleName": "Олеговна",
+    "birthDate": "1987-11-11",
+    "issueDate": "2017-12-01"
+  },
+  "9940 000115": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Захаров",
+    "firstName": "Олег",
+    "middleName": "Иванович",
+    "birthDate": "1980-03-03",
+    "issueDate": "2015-04-04"
+  },
+  "9940 000116": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Павлова",
+    "firstName": "Светлана",
+    "middleName": "Юрьевна",
+    "birthDate": "1983-09-09",
+    "issueDate": "2014-10-10"
+  },
+  "9941 000001": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Иванова",
+    "firstName": "Мария",
+    "middleName": "Сергеевна",
+    "birthDate": "1988-05-20",
+    "issueDate": "2018-06-14"
+  },
+  "9941 000005": {
+    "valid": false,
+    "reason": "LOST",
+    "lastName": "Иванова",
+    "firstName": "Мария",
+    "middleName": "Сергеевна",
+    "birthDate": "1988-05-20",
+    "issueDate": "2018-06-14"
+  },
+  "9941 000006": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Иванова",
+    "firstName": "Мария",
+    "middleName": "Сергеевна",
+    "issueDate": "2018-06-14"
+  },
+  "9941 000008": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Иванова",
+    "firstName": "Мария",
+    "middleName": "Сергеевна",
+    "birthDate": "1988-05-20",
+    "issueDate": "2018-06-14"
+  },
+  "9941 000010": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Елкина",
+    "firstName": "Мария",
+    "middleName": "Сергеевна",
+    "birthDate": "1988-05-20",
+    "issueDate": "2018-06-14"
+  },
+  "9941 000011": {
+    "valid": true,
+    "reason": null,
+    "lastName": "Петрова",
+    "firstName": "Мария",
+    "middleName": null,
+    "birthDate": "1988-05-20",
+    "issueDate": "2018-06-14"
+  },
+  "9941 000013": {
+    "_rawResponse": {
+      "valid": true,
+      "reason": "LOST",
+      "holderMatch": true,
+      "mismatchFields": []
+    }
+  },
+  "9941 000014": {
+    "_rawResponse": {
+      "valid": false,
+      "reason": null,
+      "holderMatch": null,
+      "mismatchFields": []
+    }
+  }
+}
