@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import math
+from decimal import ROUND_HALF_UP, Decimal
 from fractions import Fraction
 
 from .. import refdata
@@ -26,6 +27,17 @@ PRODUCT_TITLES = {"LEASING": "лизинг", "INVESTMENT_LOAN": "инвести�
                   "OVERDRAFT": "овердрафт", "BANK_GUARANTEE": "банковская гарантия", "STARTER_LOAN": "стартовый кредит"}
 GRACE_PRODUCTS = ("INVESTMENT_LOAN", "CREDIT_LINE", "STARTER_LOAN")
 GRACE_GOALS = {"NEW_LOCATION", "START_BUSINESS"}
+
+
+def half_up(x) -> int:
+    """Округление до рубля половиной вверх (product-rules-v1.md, раздел 5): 0,5 → 1."""
+    if isinstance(x, Fraction):
+        x = Decimal(x.numerator) / Decimal(x.denominator)
+    return int(Decimal(x).quantize(Decimal(1), rounding=ROUND_HALF_UP))
+
+
+def _dec(x) -> Decimal:
+    return Decimal(str(x))
 
 
 def money(x: int) -> str:
@@ -46,16 +58,17 @@ def rate(product: str, score_total: int | None, route: str | None) -> float:
 
 def annuity_schedule(principal: int, annual_rate: float, n: int, grace: int) -> list[dict]:
     """График одного продукта: месяцы 1…g — только проценты, потом аннуитет на n−g месяцев.
-    Каждая строка округляется до рубля, в последний месяц гасится весь остаток."""
-    r = annual_rate / 100 / 12
+    Точная арифметика Decimal, каждая строка округляется до рубля половиной вверх,
+    в последний месяц гасится весь остаток (product-rules-v1.md, раздел 5)."""
+    r = _dec(annual_rate) / Decimal(1200)
     rows, debt, pay = [], principal, None
     for k in range(1, n + 1):
-        interest = round(debt * r)
+        interest = half_up(debt * r)
         if k <= grace:
             principal_part = 0
         else:
             if pay is None:
-                pay = round(principal * r / (1 - (1 + r) ** -(n - grace)))
+                pay = half_up(principal * r / (1 - (1 + r) ** -(n - grace)))
             principal_part = debt if k == n else pay - interest
         rows.append({"month": k, "principal": principal_part, "interest": interest,
                      "total": principal_part + interest})
@@ -86,7 +99,7 @@ def build_offer(kind: str, items: list[dict], goals: dict | None, score_total, r
         rt = rate(prod, score_total, route)
         if prod == "BANK_GUARANTEE":
             term = s.TERM_BANK_GUARANTEE
-            fee = round(amount * rt / 100 * term / 12)
+            fee = half_up(amount * _dec(rt) / 100 * term / 12)
             overpay += fee
             products.append({"product": prod, "amount": amount, "termMonths": term, "ratePercent": rt,
                              "monthlyPayment": 0, "coversItems": [x["id"] for x in its], "fee": fee})
@@ -99,7 +112,7 @@ def build_offer(kind: str, items: list[dict], goals: dict | None, score_total, r
             grace = s.GRACE_MONTHS
         if prod == "OVERDRAFT":
             # Осторожная оценка: проценты, как будто лимит выбран полностью
-            pay = round(amount * rt / 1200)
+            pay = half_up(amount * _dec(rt) / 1200)
             rows = [{"month": k, "total": pay, "interest": pay} for k in range(1, term + 1)]
         else:
             rows = annuity_schedule(amount, rt, term, min(grace, term - 1))
@@ -139,9 +152,17 @@ def payback(okved: str | None) -> dict | None:
             "bad": bad if bad <= s.PAYBACK_BAD_MAX_MONTHS else None}
 
 
-def why_it_fits(o: dict) -> list[str]:
+def why_it_fits(o: dict, main: dict | None = None, free=None) -> list[str]:
+    """Строки по порядку из product-rules-v1.md, раздел 4; берутся первые 3 подходящие.
+    main — предложение MAIN (для SMALLER и ALTERNATIVE), free — F = средняя выручка − средние расходы (None без выписки)."""
     s = get_settings()
     out = []
+    if o["kind"] == "SMALLER" and main is not None:
+        out.append(f"Платёж на {money(main['fullPayment'] - o['fullPayment'])} ₽ меньше главного предложения")
+    if o["kind"] == "ALTERNATIVE" and main is not None:
+        out.append(f"Без отсрочки — переплата меньше на {money(main['overpayment'] - o['overpayment'])} ₽")
+    if free is not None and free > 0:
+        out.append(f"Платёж — {half_up(Fraction(o['fullPayment'] * 100) / free)}% свободных денег вашего бизнеса")
     g = max((p.get("gracePeriodMonths", 0) for p in o["products"]), default=0)
     if g:
         out.append(f"Отсрочка {g} мес.: пока бизнес запускается, платите только проценты — "
@@ -150,14 +171,10 @@ def why_it_fits(o: dict) -> list[str]:
         out.append("Оборудование в лизинге — не нужен залог")
     if o["partnerServices"]:
         out.append(f"Реклама у партнёра банка со скидкой {s.PARTNER_DISCOUNT:g}%")
-    if o["kind"] == "SMALLER":
-        out.insert(0, "Если выручка упадёт на 20%, платёж всё равно по силам")
-    if o["kind"] == "ALTERNATIVE":
-        out.insert(0, "Без отсрочки — переплата меньше")
     return out[:3]
 
 
-def to_api(o: dict, okved: str | None) -> dict:
+def to_api(o: dict, okved: str | None, main: dict | None = None, free=None) -> dict:
     """Приводим к схеме Offer из openapi.yaml."""
     products = []
     for p in o["products"]:
@@ -170,7 +187,7 @@ def to_api(o: dict, okved: str | None) -> dict:
     out = {"id": o["kind"].lower(), "kind": o["kind"], "termsChanged": o["termsChanged"], "products": products,
            "totalAmount": o["totalAmount"], "firstMonthsPayment": o["firstMonthsPayment"],
            "fullPayment": o["fullPayment"], "overpayment": o["overpayment"],
-           "partnerServices": o["partnerServices"], "whyItFits": why_it_fits(o)}
+           "partnerServices": o["partnerServices"], "whyItFits": why_it_fits(o, main, free)}
     pb = payback(okved)
     if pb:
         out["paybackMonths"] = pb
@@ -212,7 +229,8 @@ def build_offers(estimate: dict, goals: dict | None, st: dict | None, score_tota
                           share=main["totalAmount"] / est_total if reduced else 1.0)
         alt["termsChanged"] = reduced or capped
         offers.append(alt)
-    return [to_api(o, okved) for o in offers], start_smaller, None
+    free = (avg_income(st) - avg_expense(st)) if st else None
+    return [to_api(o, okved, main, free) for o in offers], start_smaller, None
 
 
 def staff_terms_offer(estimate: dict | None, goals: dict | None, st: dict | None, okved: str | None,
@@ -231,7 +249,8 @@ def staff_terms_offer(estimate: dict | None, goals: dict | None, st: dict | None
                 "source": "RULE", "product": product}
         o = build_offer("MAIN", [item], goals, None, "STAFF", term_override=term, force_grace=startup)
     o["termsChanged"] = True
-    return [to_api(o, okved)]
+    free = (avg_income(st) - avg_expense(st)) if st else None
+    return [to_api(o, okved, o, free)]
 
 
 def preview_start_smaller(estimate: dict, goals: dict | None, st: dict | None) -> bool:

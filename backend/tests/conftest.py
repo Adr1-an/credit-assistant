@@ -13,6 +13,7 @@ import os
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -36,7 +37,7 @@ os.environ.update({
     "CONTRACT_DIR": str(REPO / "contract"),
     "TESTS_DIR": str(TESTS_DATA),
     "DATABASE_URL": os.environ.get("TEST_DATABASE_URL")
-                    or f"sqlite:///{Path(os.environ.get('TMPDIR', '/tmp')) / 'navigator-test.db'}",
+                    or f"sqlite:///{(Path(tempfile.gettempdir()) / 'navigator-test.db').as_posix()}",
 })
 
 

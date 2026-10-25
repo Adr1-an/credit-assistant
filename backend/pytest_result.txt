@@ -1,0 +1,133 @@
+............................F.......FFFFF.FFFFFFFF...................... [ 75%]
+.......................                                                  [100%]
+================================== FAILURES ===================================
+___________________ test_staff_approve_gives_plus_2_offers ____________________
+tests\test_edge_cases.py:232: in test_staff_approve_gives_plus_2_offers
+    assert client.get(f"/api/applications/{app_id}/offers").json() == expected["T02"]["offers"]
+E   AssertionError: assert [{'firstMonth...MALLER', ...}] == [{'firstMonth...MALLER', ...}]
+E     
+E     At index 0 diff: {'id': 'main', 'kind': 'MAIN', 'termsChanged': False, 'products': [{'product': 'LEASING', 'title': 'Лизинг', 'amount': 800000, 'termMonths': 36, 'ratePercent': 20.0, 'monthlyPayment': 29731, 'coversItems': ['i1']}, {'product': 'OVERDRAFT', 'title': 'Овердрафт', 'amount': 80000, 'termMonths': 12, 'ratePercent': 23.0, 'monthlyPayment': 1533, 'note': 'проценты, если лимит выбран полностью', 'coversItems': ['i2']}], 'totalAmount': 880000, 'firstMonthsPayment': 31264, 'fullPayment': 31264, 'overpayment': 270312, 'paybackMonths': {'good': 18, 'normal': 24, 'b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+__________________________ test_case_end_to_end[T01] __________________________
+tests\test_end_to_end.py:68: in test_case_end_to_end
+    assert offers == exp["offers"]
+E   AssertionError: assert [{'firstMonth...NATIVE', ...}] == [{'firstMonth...NATIVE', ...}]
+E     
+E     At index 0 diff: {'id': 'main', 'kind': 'MAIN', 'termsChanged': False, 'products': [{'product': 'INVESTMENT_LOAN', 'title': 'Инвестиционный кредит', 'amount': 400000, 'termMonths': 36, 'ratePercent': 18.0, 'gracePeriodMonths': 3, 'monthlyPayment': 15457, 'coversItems': ['i1']}, {'product': 'CREDIT_LINE', 'title': 'Кредитная линия', 'amount': 1760000, 'termMonths': 18, 'ratePercent': 19.0, 'gracePeriodMonths': 3, 'monthlyPayment': 132740, 'coversItems': ['i2', 'i4', 'i5']}, {'product': 'LEASING', 'title': 'Лизинг', 'amount': 1500000, 'termMonths': 36, 'ratePercent': 17.0...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+__________________________ test_case_end_to_end[T02] __________________________
+tests\test_end_to_end.py:68: in test_case_end_to_end
+    assert offers == exp["offers"]
+E   AssertionError: assert [{'firstMonth...MALLER', ...}] == [{'firstMonth...MALLER', ...}]
+E     
+E     At index 0 diff: {'id': 'main', 'kind': 'MAIN', 'termsChanged': False, 'products': [{'product': 'LEASING', 'title': 'Лизинг', 'amount': 800000, 'termMonths': 36, 'ratePercent': 20.0, 'monthlyPayment': 29731, 'coversItems': ['i1']}, {'product': 'OVERDRAFT', 'title': 'Овердрафт', 'amount': 80000, 'termMonths': 12, 'ratePercent': 23.0, 'monthlyPayment': 1533, 'note': 'проценты, если лимит выбран полностью', 'coversItems': ['i2']}], 'totalAmount': 880000, 'firstMonthsPayment': 31264, 'fullPayment': 31264, 'overpayment': 270312, 'paybackMonths': {'good': 18, 'normal': 24, 'b...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+__________________________ test_case_end_to_end[T03] __________________________
+tests\test_end_to_end.py:61: in test_case_end_to_end
+    assert card["recommendation"]["action"] == exp["recommendation"]["action"]
+E   KeyError: 'recommendation'
+__________________________ test_case_end_to_end[T05] __________________________
+tests\test_end_to_end.py:68: in test_case_end_to_end
+    assert offers == exp["offers"]
+E   AssertionError: assert [{'firstMonth...NATIVE', ...}] == [{'firstMonth...NATIVE', ...}]
+E     
+E     At index 1 diff: {'id': 'alternative', 'kind': 'ALTERNATIVE', 'termsChanged': False, 'products': [{'product': 'STARTER_LOAN', 'title': 'Стартовый кредит', 'amount': 150000, 'termMonths': 24, 'ratePercent': 22.0, 'monthlyPayment': 7782, 'coversItems': ['i1']}], 'totalAmount': 150000, 'firstMonthsPayment': 7782, 'fullPayment': 7782, 'overpayment': 36765, 'paybackMonths': {'good': 14, 'normal': 18, 'bad': 27}, 'whyItFits': ['Без отсрочки — переплата меньше'], 'partnerServices': []} != {'id': 'alternative', 'kind': 'ALTERNATIVE', 'termsChanged': False, 'products': [{'produc...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+__________________________ test_case_end_to_end[T06] __________________________
+tests\test_end_to_end.py:68: in test_case_end_to_end
+    assert offers == exp["offers"]
+E   AssertionError: assert [{'firstMonth...NATIVE', ...}] == [{'firstMonth...NATIVE', ...}]
+E     
+E     At index 0 diff: {'id': 'main', 'kind': 'MAIN', 'termsChanged': False, 'products': [{'product': 'STARTER_LOAN', 'title': '\u0421\u0442\u0430\u0440\u0442\u043e\u0432\u044b\u0439 \u043a\u0440\u0435\u0434\u0438\u0442', 'amount': 700000, 'termMonths': 24, 'ratePercent': 24.0, 'gracePeriodMonths': 3, 'monthlyPayment': 41156, 'coversItems': ['i1']}], 'totalAmount': 700000, 'firstMonthsPayment': 14000, 'fullPayment': 41156, 'overpayment': 206136, 'paybackMonths': {'good': 14, 'normal': 18, 'bad': 27}, 'whyItFits': ['\u041e\u0442\u0441\u0440\u043e\u0447\u043a\u0430 3 \u043c\u0435\u0441.: \u043f\u043e\u043a\u0430 \u0431\u0438\u0437\u043d\u0435\u0441 \u0437\u0430\u043f\u0443\u0441\u043a\u0430\u0435\u0442\u0441\u044f, \u043f\u043b\u0430\u0442\u0438\u0442\u0435 \u0442\u043e\u043b\u044c\u043a\u043e \u043f\u0440\u043e\u0446\u0435\u043d\u0442\u044b \u2014 14 000 \u20bd'], 'partnerServices': []} != {'id': 'main', 'kind': 'MAIN',...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+__________________________ test_case_end_to_end[T08] __________________________
+tests\test_end_to_end.py:68: in test_case_end_to_end
+    assert offers == exp["offers"]
+E   AssertionError: assert [{'firstMonth... 'MAIN', ...}] == [{'firstMonth... 'MAIN', ...}]
+E     
+E     At index 0 diff: {'id': 'main', 'kind': 'MAIN', 'termsChanged': False, 'products': [{'product': 'LEASING', 'title': 'Лизинг', 'amount': 1000000, 'termMonths': 36, 'ratePercent': 20.0, 'monthlyPayment': 37164, 'coversItems': ['i1']}, {'product': 'OVERDRAFT', 'title': 'Овердрафт', 'amount': 100000, 'termMonths': 12, 'ratePercent': 23.0, 'monthlyPayment': 1917, 'note': 'проценты, если лимит выбран полностью', 'coversItems': ['i2']}], 'totalAmount': 1100000, 'firstMonthsPayment': 39081, 'fullPayment': 39081, 'overpayment': 337887, 'paybackMonths': {'good': 15, 'normal': 20,...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+__________________________ test_case_end_to_end[T09] __________________________
+tests\test_end_to_end.py:68: in test_case_end_to_end
+    assert offers == exp["offers"]
+E   AssertionError: assert [{'firstMonth... 'MAIN', ...}] == [{'firstMonth... 'MAIN', ...}]
+E     
+E     At index 0 diff: {'id': 'main', 'kind': 'MAIN', 'termsChanged': False, 'products': [{'product': 'LEASING', 'title': 'Лизинг', 'amount': 1000000, 'termMonths': 36, 'ratePercent': 20.0, 'monthlyPayment': 37164, 'coversItems': ['i1']}, {'product': 'OVERDRAFT', 'title': 'Овердрафт', 'amount': 100000, 'termMonths': 12, 'ratePercent': 23.0, 'monthlyPayment': 1917, 'note': 'проценты, если лимит выбран полностью', 'coversItems': ['i2']}], 'totalAmount': 1100000, 'firstMonthsPayment': 39081, 'fullPayment': 39081, 'overpayment': 337887, 'paybackMonths': {'good': 15, 'normal': 20,...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+__________________________ test_case_end_to_end[E01] __________________________
+tests\test_end_to_end.py:68: in test_case_end_to_end
+    assert offers == exp["offers"]
+E   AssertionError: assert [{'firstMonth...MALLER', ...}] == [{'firstMonth...MALLER', ...}]
+E     
+E     At index 0 diff: {'id': 'main', 'kind': 'MAIN', 'termsChanged': False, 'products': [{'product': 'INVESTMENT_LOAN', 'title': 'Инвестиционный кредит', 'amount': 250000, 'termMonths': 36, 'ratePercent': 21.0, 'monthlyPayment': 9419, 'coversItems': ['i1']}], 'totalAmount': 250000, 'firstMonthsPayment': 9419, 'fullPayment': 9419, 'overpayment': 89074, 'paybackMonths': {'good': 18, 'normal': 24, 'bad': 36}, 'whyItFits': [], 'partnerServices': []} != {'id': 'main', 'kind': 'MAIN', 'termsChanged': False, 'products': [{'product': 'INVESTMENT_LOAN', 'amount': 250000, 'termMonths'...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+__________________________ test_case_end_to_end[E02] __________________________
+tests\test_end_to_end.py:68: in test_case_end_to_end
+    assert offers == exp["offers"]
+E   AssertionError: assert [{'firstMonth...MALLER', ...}] == [{'firstMonth...MALLER', ...}]
+E     
+E     At index 0 diff: {'id': 'main', 'kind': 'MAIN', 'termsChanged': False, 'products': [{'product': 'CREDIT_LINE', 'title': 'Кредитная линия', 'amount': 200000, 'termMonths': 18, 'ratePercent': 22.0, 'monthlyPayment': 13146, 'coversItems': ['i1']}, {'product': 'OVERDRAFT', 'title': 'Овердрафт', 'amount': 20000, 'termMonths': 12, 'ratePercent': 23.0, 'monthlyPayment': 383, 'note': 'проценты, если лимит выбран полностью', 'coversItems': ['i2']}], 'totalAmount': 220000, 'firstMonthsPayment': 13529, 'fullPayment': 13529, 'overpayment': 36623, 'paybackMonths': {'good': 9, 'norma...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+__________________________ test_case_end_to_end[E03] __________________________
+tests\test_end_to_end.py:68: in test_case_end_to_end
+    assert offers == exp["offers"]
+E   AssertionError: assert [{'firstMonth... 'MAIN', ...}] == [{'firstMonth... 'MAIN', ...}]
+E     
+E     At index 0 diff: {'id': 'main', 'kind': 'MAIN', 'termsChanged': False, 'products': [{'product': 'INVESTMENT_LOAN', 'title': 'Инвестиционный кредит', 'amount': 150000, 'termMonths': 36, 'ratePercent': 21.0, 'monthlyPayment': 5665, 'coversItems': ['i1']}], 'totalAmount': 150000, 'firstMonthsPayment': 5651, 'fullPayment': 5665, 'overpayment': 53450, 'paybackMonths': {'good': 18, 'normal': 24, 'bad': 36}, 'whyItFits': [], 'partnerServices': []} != {'id': 'main', 'kind': 'MAIN', 'termsChanged': False, 'products': [{'product': 'INVESTMENT_LOAN', 'amount': 150000, 'termMonths'...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+__________________________ test_case_end_to_end[E04] __________________________
+tests\test_end_to_end.py:68: in test_case_end_to_end
+    assert offers == exp["offers"]
+E   AssertionError: assert [{'firstMonth... 'MAIN', ...}] == [{'firstMonth... 'MAIN', ...}]
+E     
+E     At index 0 diff: {'id': 'main', 'kind': 'MAIN', 'termsChanged': False, 'products': [{'product': 'LEASING', 'title': 'Лизинг', 'amount': 1000000, 'termMonths': 36, 'ratePercent': 20.0, 'monthlyPayment': 37164, 'coversItems': ['i1']}, {'product': 'OVERDRAFT', 'title': 'Овердрафт', 'amount': 100000, 'termMonths': 12, 'ratePercent': 23.0, 'monthlyPayment': 1917, 'note': 'проценты, если лимит выбран полностью', 'coversItems': ['i2']}], 'totalAmount': 1100000, 'firstMonthsPayment': 39081, 'fullPayment': 39081, 'overpayment': 337887, 'paybackMonths': {'good': 15, 'normal': 20,...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+__________________________ test_case_end_to_end[E05] __________________________
+tests\test_end_to_end.py:68: in test_case_end_to_end
+    assert offers == exp["offers"]
+E   AssertionError: assert [{'firstMonth... 'MAIN', ...}] == [{'firstMonth... 'MAIN', ...}]
+E     
+E     At index 0 diff: {'id': 'main', 'kind': 'MAIN', 'termsChanged': False, 'products': [{'product': 'LEASING', 'title': 'Лизинг', 'amount': 1000000, 'termMonths': 36, 'ratePercent': 17.0, 'monthlyPayment': 35653, 'coversItems': ['i1']}, {'product': 'OVERDRAFT', 'title': 'Овердрафт', 'amount': 100000, 'termMonths': 12, 'ratePercent': 20.0, 'monthlyPayment': 1667, 'note': 'проценты, если лимит выбран полностью', 'coversItems': ['i2']}], 'totalAmount': 1100000, 'firstMonthsPayment': 37320, 'fullPayment': 37320, 'overpayment': 283496, 'paybackMonths': {'good': 15, 'normal': 20,...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+__________________________ test_case_end_to_end[E06] __________________________
+tests\test_end_to_end.py:68: in test_case_end_to_end
+    assert offers == exp["offers"]
+E   AssertionError: assert [{'firstMonth... 'MAIN', ...}] == [{'firstMonth... 'MAIN', ...}]
+E     
+E     At index 0 diff: {'id': 'main', 'kind': 'MAIN', 'termsChanged': False, 'products': [{'product': 'LEASING', 'title': 'Лизинг', 'amount': 1000000, 'termMonths': 36, 'ratePercent': 20.0, 'monthlyPayment': 37164, 'coversItems': ['i1']}, {'product': 'OVERDRAFT', 'title': 'Овердрафт', 'amount': 100000, 'termMonths': 12, 'ratePercent': 23.0, 'monthlyPayment': 1917, 'note': 'проценты, если лимит выбран полностью', 'coversItems': ['i2']}], 'totalAmount': 1100000, 'firstMonthsPayment': 39081, 'fullPayment': 39081, 'overpayment': 337887, 'paybackMonths': {'good': 15, 'normal': 20,...
+E     
+E     ...Full output truncated (2 lines hidden), use '-vv' to show
+============================== warnings summary ===============================
+tests/test_edge_cases.py::test_bad_statements[empty.csv]
+  C:\Users\User\Desktop\новая папка для ебаной задачи\credit-assistant\backend\.venv\Lib\site-packages\starlette\testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_edge_cases.py::test_staff_approve_gives_plus_2_offers - Ass...
+FAILED tests/test_end_to_end.py::test_case_end_to_end[T01] - AssertionError: ...
+FAILED tests/test_end_to_end.py::test_case_end_to_end[T02] - AssertionError: ...
+FAILED tests/test_end_to_end.py::test_case_end_to_end[T03] - KeyError: 'recom...
+FAILED tests/test_end_to_end.py::test_case_end_to_end[T05] - AssertionError: ...
+FAILED tests/test_end_to_end.py::test_case_end_to_end[T06] - AssertionError: ...
+FAILED tests/test_end_to_end.py::test_case_end_to_end[T08] - AssertionError: ...
+FAILED tests/test_end_to_end.py::test_case_end_to_end[T09] - AssertionError: ...
+FAILED tests/test_end_to_end.py::test_case_end_to_end[E01] - AssertionError: ...
+FAILED tests/test_end_to_end.py::test_case_end_to_end[E02] - AssertionError: ...
+FAILED tests/test_end_to_end.py::test_case_end_to_end[E03] - AssertionError: ...
+FAILED tests/test_end_to_end.py::test_case_end_to_end[E04] - AssertionError: ...
+FAILED tests/test_end_to_end.py::test_case_end_to_end[E05] - AssertionError: ...
+FAILED tests/test_end_to_end.py::test_case_end_to_end[E06] - AssertionError: ...
+14 failed, 81 passed, 1 warning in 79.40s (0:01:19)

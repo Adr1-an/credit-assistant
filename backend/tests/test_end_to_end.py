@@ -58,7 +58,9 @@ def test_case_end_to_end(client, cases, expected, code):
         assert strip_items(est["items"]) == exp["estimate"]["items"]
         assert est["total"] == exp["estimate"]["total"]
         assert est["startSmallerSuggested"] == exp["estimate"]["startSmallerSuggested"]
+    if "recommendation" in exp:   # при отказе (T03) рекомендации нет
         assert card["recommendation"]["action"] == exp["recommendation"]["action"]
+    if "offers" in exp:
         if exp["statusAfterSubmit"] == "OFFER_READY":
             offers = client.get(f"/api/applications/{app_id}/offers").json()
         else:
