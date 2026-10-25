@@ -45,6 +45,25 @@
 
 Внешние сервисы (ЕГРИП, бюро кредитных историй, ФССП, налоги, паспорт, банкротство) заменены заглушками (`mocks/`). Дата оценки зафиксирована — 24.10.2026, чтобы тестовые данные не «устаревали».
 
+## Запуск без Docker (Windows)
+
+Нужно: Python 3.11+, Node.js 22+. **Путь к папке проекта — только латинскими буквами и без пробелов** (например, `C:\projects\credit-assistant`): генератор типов API для сайта не находит файлы по пути с русскими буквами.
+
+Первый раз:
+```
+cd backend
+python -m venv .venv
+.venv\Scripts\activate
+python -m pip install -r requirements.txt
+deactivate
+cd ..\frontend
+npm install
+cd ..
+python -m pip install gpt2giga
+```
+
+Дальше каждый раз — двойной щелчок по `start-local.bat` (или команда `start-local.bat` в корне). Откроются 4 окна: прокси GigaChat, заглушки, сервер, сайт. Сайт — http://localhost:3000. Чтобы ИИ работал, в `.env` должно быть `LLM_ENABLED=true` и заполнены ключи (раздел ниже). На своём компьютере без сертификата Минцифры добавьте в `.env` строку `GIGACHAT_VERIFY_SSL_CERTS=False`.
+
 ## Включить ИИ
 
 ИИ подключается по стандарту OpenAI (`contract/llm-contract.md`), поэтому подойдёт любая совместимая модель.

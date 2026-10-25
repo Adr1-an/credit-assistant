@@ -167,7 +167,7 @@ export function AfterIssueStep({ application, preview = false }: Props) {
         <Button variant="secondary" loading={advanceBusy} disabled={preview || !!optionBusy} onClick={() => void advanceMonth()}>Перемотать месяц</Button>
       </div>
       {preview ? <p className="flow-step__fine">В предпросмотре эта кнопка отключена. В рабочей демо-заявке она отправляет POST /api/demo/applications/{'{id}'}/advance-month.</p> : null}
-      {demoNotices.length > 0 ? <p className="flow-step__fine">Сервер вернул новых уведомлений: {demoNotices.length}. Список выше обновлён.</p> : null}
+      {demoNotices.length > 0 ? <p className="flow-step__fine">Новых уведомлений: {demoNotices.length}. Список выше обновлён.</p> : null}
     </div>
     {!preview && (scheduleError || notificationError) ? <div className="flow-step__actions"><Button variant="secondary" onClick={() => setRevision((value) => value + 1)}>Обновить данные</Button></div> : null}
   </section>;

@@ -4,7 +4,10 @@
 Любая проблема (ИИ выключен, не ответил, ответ не прошёл проверку) → AIUnavailable,
 бэк ловит его и включает запасной вариант (форма, готовые ответы, aiSummary = null).
 """
+import functools
 import json
+import logging
+import os
 import re
 from pathlib import Path
 from typing import Optional  # noqa: F401  (как в контракте)
@@ -16,6 +19,32 @@ __all__ = ["AIUnavailable", "is_available", "dialog_step", "suggest_okved",
            "categorize_transactions", "explain_contract", "staff_summary"]
 
 _PROMPTS = Path(__file__).resolve().parent / "prompts"
+log = logging.getLogger("app.ai")
+
+
+def _logged(task: str):
+    """Причину, по которой ИИ не сработал, пишем в лог сервера (без текста клиента) — и отдаём запасной вариант."""
+    def wrap(fn):
+        @functools.wraps(fn)
+        def inner(*args, **kwargs):
+            try:
+                return fn(*args, **kwargs)
+            except AIUnavailable as e:
+                log.warning("ИИ (%s): %s — включается запасной вариант", task, e)
+                raise
+        return inner
+    return wrap
+
+
+@functools.lru_cache(maxsize=1)
+def _okved_catalog() -> tuple:
+    """Справочник ОКВЭД из contract/okved.json (CONTRACT_DIR или корень репозитория). Нет файла — пусто."""
+    base = Path(os.environ.get("CONTRACT_DIR") or Path(__file__).resolve().parents[3] / "contract")
+    try:
+        data = json.loads((base / "okved.json").read_text(encoding="utf-8"))
+        return tuple((c["code"], c["name"]) for c in data if "code" in c and "name" in c)
+    except (OSError, ValueError, TypeError):
+        return ()
 MAX_HISTORY = 30          # сообщений диалога в промпте
 MAX_ROWS = 50             # строк выписки за один вызов
 MAX_CARD_CHARS = 14000    # карточка для сводки
@@ -39,6 +68,7 @@ def _with_labels(question_sets: dict) -> dict:
     return qs
 
 
+@_logged("диалог")
 def dialog_step(context: dict, history: list[dict], question_sets: dict) -> dict:
     """Шаги 5–6. Следующий вопрос или сводка. Возвращает DialogStepResult (llm-contract.md, задача 1)."""
     lines = []
@@ -49,16 +79,19 @@ def dialog_step(context: dict, history: list[dict], question_sets: dict) -> dict
             lines.append("Клиент: " + guard.client_text(m.get("text")))
         else:
             lines.append("Ассистент: " + guard.clean_client_text(m.get("text"), 1000))
+    okved = _okved_catalog()
     user = "\n".join([
         guard.data("context", context or {}),
         guard.data("question_sets", _with_labels(question_sets or {})),
+        guard.data("okved_catalog", [{"code": c, "name": n} for c, n in okved]),
         "<dialog>\n" + ("\n".join(lines) or "(диалог только начинается)") + "\n</dialog>",
         "Сделай следующий шаг диалога.",
     ])
     raw = client.chat_json("dialog_step", _prompt("dialog_step"), user, validate.SCHEMAS["dialog_step"])
-    return validate.dialog_step(raw, question_sets or {})
+    return validate.dialog_step(raw, question_sets or {}, {c for c, _ in okved} or None)
 
 
+@_logged("ОКВЭД")
 def suggest_okved(text: str, okved_catalog: list[dict]) -> list[dict]:
     """До 3 кодов ОКВЭД из okved_catalog. Возвращает [{code, name}]."""
     catalog = [{"code": c["code"], "name": c["name"]} for c in (okved_catalog or []) if "code" in c and "name" in c]
@@ -69,6 +102,7 @@ def suggest_okved(text: str, okved_catalog: list[dict]) -> list[dict]:
     return validate.suggest_okved(raw, catalog)
 
 
+@_logged("выписка")
 def categorize_transactions(rows: list[dict], categories: list[str]) -> list[dict]:
     """Разложить операции выписки по категориям, которые не распознали правила.
 
@@ -89,6 +123,7 @@ def categorize_transactions(rows: list[dict], categories: list[str]) -> list[dic
 _CLAUSE_REF = re.compile(r"пункт\w*\s+\d{1,2}", re.I)
 
 
+@_logged("договор")
 def explain_contract(contract: dict, question: str) -> str:
     """Ответ на вопрос «Что будет, если…» по договору этого клиента. 2–5 предложений."""
     contract_json = json.dumps(contract or {}, ensure_ascii=False)
@@ -109,6 +144,7 @@ def explain_contract(contract: dict, question: str) -> str:
     return answer
 
 
+@_logged("сводка")
 def staff_summary(card: dict) -> str:
     """Короткая сводка для сотрудника: 3–5 пунктов «на что обратить внимание». Решения не даёт."""
     safe = guard.strip_card(card or {})

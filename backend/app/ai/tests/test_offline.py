@@ -67,6 +67,13 @@ def setr(reply, **kw):
     STATE.update(reply=reply, status=200, delay=0, reject_format=False); STATE.update(kw)
 
 
+def expect_dropped(name, reply):
+    r = ai.dialog_step({}, [{"role": "CLIENT", "text": "x"}], QS)
+    bad_q = reply["collected"]["goals"][0]["answers"][0]["questionId"]
+    left = [a["questionId"] for g in r["collected"]["goals"] for a in g["answers"]]
+    results.append(("OK " if bad_q not in left else "ОШИБКА") + f" {name}: {left}")
+
+
 def run_all():
     # --- 0. ИИ выключен
     for k in ("LLM_ENABLED", "LLM_BASE_URL", "LLM_API_KEY"):
@@ -98,13 +105,35 @@ def run_all():
     bad = json.loads(json.dumps(GOOD)); bad["assistantText"] = "Отлично, мы одобрим вам кредит под 15%!"
     setr(bad); check("диалог: обещание одобрения", lambda: ai.dialog_step({}, hist, QS), expect_ok=False)
     bad = json.loads(json.dumps(GOOD)); bad["collected"]["goals"][0]["answers"] = [{"questionId": "location.premises", "value": "ДВОРЕЦ"}]
-    setr(bad); check("диалог: вариант не из списка", lambda: ai.dialog_step({}, hist, QS), expect_ok=False)
+    setr(bad); expect_dropped("диалог: вариант не из списка → убран только этот ответ", bad)
     bad = json.loads(json.dumps(GOOD)); bad["collected"]["goals"][0]["answers"] = [{"questionId": "location.premises", "value": None}]
-    setr(bad); check("диалог: «не знаю» на обязательный вопрос", lambda: ai.dialog_step({}, hist, QS), expect_ok=False)
+    setr(bad); expect_dropped("диалог: «не знаю» на обязательный вопрос → убран только этот ответ", bad)
     bad = json.loads(json.dumps(GOOD)); bad["collected"]["goals"][0]["answers"] = [{"questionId": "location.equipment", "value": -5}]
-    setr(bad); check("диалог: отрицательная сумма", lambda: ai.dialog_step({}, hist, QS), expect_ok=False)
+    setr(bad); expect_dropped("диалог: отрицательная сумма → убран только этот ответ", bad)
     summ = json.loads(json.dumps(GOOD)); summ.update(state="SUMMARY", currentQuestionId=None, summaryText="Проверьте, правильно ли я понял: новая точка, оборудование 1 500 000 ₽.")
-    setr(summ); check("диалог: сводка", lambda: ai.dialog_step({}, hist, QS))
+    setr(summ); r = ai.dialog_step({}, hist, QS)
+    results.append(("OK " if r["state"] == "ASKING" and r["currentQuestionId"] == "location.premises" else "ОШИБКА")
+                   + " диалог: сводка без обязательного ответа → задаём этот вопрос: " + str((r["state"], r["currentQuestionId"])))
+    full = json.loads(json.dumps(summ)); full["collected"]["goals"][0]["answers"].append({"questionId": "location.premises", "value": "OWN"})
+    setr(full); check("диалог: полная сводка", lambda: ai.dialog_step({}, hist, QS))
+    start = {"state": "ASKING", "assistantText": "Какой бизнес хотите открыть?", "currentQuestionId": "start.okved",
+             "quickReplies": ["10.71 Производство хлеба", "56.10 Рестораны"],
+             "collected": {"source": "AI", "goals": [{"goalType": "START_BUSINESS", "answers": [
+                 {"questionId": "start.okved", "value": "пекарня"}]}], "commonAnswers": []}, "summaryText": None}
+    setr(start); r = ai.dialog_step({}, hist, QS)
+    results.append(("OK " if not r["collected"]["goals"][0]["answers"] and r["quickReplies"][0].startswith("10.71") else "ОШИБКА")
+                   + " диалог: ОКВЭД словами («пекарня») убран, кнопки с кодами остались")
+    s2 = json.loads(json.dumps(start)); s2["collected"]["goals"][0]["answers"] = [{"questionId": "start.okved", "value": "99.99"}]
+    setr(s2); r = ai.dialog_step({}, hist, QS)
+    results.append(("OK " if not r["collected"]["goals"][0]["answers"] else "ОШИБКА") + " диалог: код ОКВЭД не из справочника убран")
+    s3 = json.loads(json.dumps(start)); s3["collected"]["goals"][0]["answers"] = [{"questionId": "start.okved", "value": "10.71"}]
+    setr(s3); r = ai.dialog_step({}, hist, QS)
+    results.append(("OK " if r["collected"]["goals"][0]["answers"] == [{"questionId": "start.okved", "value": "10.71"}] else "ОШИБКА")
+                   + " диалог: код ОКВЭД из справочника записан")
+    pct = json.loads(json.dumps(full)); pct["summaryText"] = "Проверьте, правильно ли я понял: новая точка, выручка вырастет на 20%."
+    setr(pct); check("диалог: «20%» из слов клиента — не обещание", lambda: ai.dialog_step({}, hist, QS))
+    rate = json.loads(json.dumps(full)); rate["summaryText"] = "Проверьте: кредит под 15% вам подойдёт."
+    setr(rate); check("диалог: «под 15%» — обещание ставки", lambda: ai.dialog_step({}, hist, QS), expect_ok=False)
     esc = {"state": "ESCALATED", "assistantText": "Не удалось понять цель. Выберите её из списка или передайте заявку специалисту.",
            "currentQuestionId": None, "quickReplies": [], "collected": {"source": "AI", "goals": [], "commonAnswers": []}, "summaryText": None}
     setr(esc); check("диалог: цель не понята (ESCALATED)", lambda: ai.dialog_step({}, hist, QS))

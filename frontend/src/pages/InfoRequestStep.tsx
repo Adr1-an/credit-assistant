@@ -27,7 +27,7 @@ export function InfoRequestStep({ application, preview = false, onUpdated }: Pro
     try {
       const updated = await api.answerInfoRequest(application.id, body);
       onUpdated?.(updated);
-      if (updated.nextAction === 'ANSWER_INFO_REQUEST') setInfo('Ответ отправлен, но сервер пока не изменил этап. Проверьте состояние заявки позже.');
+      if (updated.nextAction === 'ANSWER_INFO_REQUEST') setInfo('Ответ отправлен. Обновите страницу чуть позже, чтобы увидеть статус.');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Не удалось отправить ответ. Попробуйте ещё раз.');
     } finally { setWorking(false); }
@@ -39,7 +39,7 @@ export function InfoRequestStep({ application, preview = false, onUpdated }: Pro
       <p>Для дальнейшего рассмотрения нужны дополнительные сведения. Ответ останется в вашей заявке — звонить или отправлять письмо не нужно.</p>
     </div></div>
     {preview ? <Notice tone="info">Пример запроса специалиста. Данные не отправляются в банк.</Notice> : null}
-    {requestText ? <div className="info-step__request"><span className="info-step__label">Что нужно уточнить</span><p>{requestText}</p></div> : <Notice tone="info">В заявке пока нет текста запроса. Обновите статус, чтобы получить инструкции от сервера.</Notice>}
+    {requestText ? <div className="info-step__request"><span className="info-step__label">Что нужно уточнить</span><p>{requestText}</p></div> : <Notice tone="info">В заявке пока нет текста запроса. Обновите страницу, чтобы увидеть, что нужно уточнить.</Notice>}
     <form className="info-step__form" onSubmit={(event) => void submit(event)}>
       <label htmlFor="info-response-text">Ваш ответ</label>
       <textarea id="info-response-text" rows={5} maxLength={maxLength} value={text} onChange={(event) => { setText(event.target.value); setError(''); }} placeholder="Напишите пояснение простыми словами" aria-describedby="info-counter" />
@@ -51,7 +51,7 @@ export function InfoRequestStep({ application, preview = false, onUpdated }: Pro
       {info ? <Notice tone="info">{info}</Notice> : null}
       {working ? <Spinner label="Передаём ваш ответ…" /> : null}
       <div className="flow-step__actions"><Button type="submit" loading={working} disabled={preview || !requestText || !text.trim()}>Отправить ответ</Button></div>
-      <p className="flow-step__fine">После ответа заявка вернётся на рассмотрение специалисту. Новый этап определит сервер.</p>
+      <p className="flow-step__fine">После ответа заявка вернётся на рассмотрение специалисту.</p>
     </form>
   </section>;
 }

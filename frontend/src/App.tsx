@@ -35,7 +35,7 @@ export function App() {
 
   if (staffMode) return (
     <div className="staff-shell">
-      <header className="staff-header"><div className="staff-container staff-header__inner"><button type="button" className="staff-header__brand" onClick={() => navigate('/staff')} aria-label="К списку заявок"><span className="staff-header__logo" aria-hidden="true">А</span><span>Кабинет сотрудника</span></button><nav aria-label="Навигация сотрудника"><button type="button" onClick={() => navigate('/staff')}>Все заявки</button><button type="button" onClick={() => navigate('/preview/staff')}>Предпросмотр</button><button type="button" onClick={() => navigate('/')}>Клиентский сайт</button></nav></div></header>
+      <header className="staff-header"><div className="staff-container staff-header__inner"><button type="button" className="staff-header__brand" onClick={() => navigate('/staff')} aria-label="К списку заявок"><span className="staff-header__logo" aria-hidden="true">А</span><span>Кабинет сотрудника</span></button><nav aria-label="Навигация сотрудника"><button type="button" onClick={() => navigate('/staff')}>Все заявки</button><button type="button" onClick={() => navigate('/')}>Клиентский сайт</button></nav></div></header>
       {staffPreview ? <div className="staff-container staff-preview-label">Предпросмотр · вымышленные тестовые данные, запросы на сервер не отправляются</div> : null}
       {path === '/staff' ? <StaffListPage onOpen={(id) => navigate(`/staff/applications/${id}`)} /> : null}
       {staffMatch ? <StaffApplicationPage key={staffMatch[1]} id={staffMatch[1]} onBack={() => navigate('/staff')} /> : null}
@@ -49,7 +49,7 @@ export function App() {
 
   return (
     <div className="client-app">
-      <ClientHeader onHome={() => navigate('/')} onUiKit={() => navigate('/ui-kit')} />
+      <ClientHeader onHome={() => navigate('/')} onStaff={() => navigate('/staff')} />
       {preview ? <PreviewPage variant={path === '/preview/statement' ? 'statement' : path === '/preview/goals' ? 'goals' : path === '/preview/goals/new-business' ? 'new-business' : path === '/preview/questions' ? 'questions' : path === '/preview/estimate' ? 'estimate' : path === '/preview/status' ? 'status' : path === '/preview/offers' ? 'offers' : path === '/preview/info-request' ? 'info-request' : path === '/preview/rejection' ? 'rejection' : path === '/preview/contract' ? 'contract' : path === '/preview/after-issue' ? 'after-issue' : 'index'} /> : null}
       {path === '/' ? <HomePage onStart={start} onSelectDemo={selectDemo} /> : null}
       {path === '/apply' ? <ApplicantPage key={demo ? `${demo.passport.number}-${demo.inn ?? ''}` : 'empty'} demo={demo} onBack={() => navigate('/')} onCreated={(id) => { setDemo(null); navigate(`/applications/${encodeURIComponent(id)}`); }} /> : null}

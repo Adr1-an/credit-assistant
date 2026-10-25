@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { api, ApiError } from '../api/client';
+import { api, ApiError, errorText } from '../api/client';
 import type { Application, DialogState, GoalType, QuestionSets } from '../api/client';
 import { Button, Notice, Spinner } from '../components';
 import { GoalChoiceStep } from './GoalChoiceStep';
-import { GoalQuestionsStep } from './GoalQuestionsStep';
+import { GoalQuestionsStep, valuesFromAnswers } from './GoalQuestionsStep';
 
 /** Переходы определяет сервер: health для выбора интерфейса, state для ИИ, nextAction для заявки. */
 export function DialogStep({ application, onSaved, onUpdated }: {
@@ -18,6 +18,7 @@ export function DialogStep({ application, onSaved, onUpdated }: {
   const [selected, setSelected] = useState<GoalType | null>(null);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
+  const [formNote, setFormNote] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -45,7 +46,10 @@ export function DialogStep({ application, onSaved, onUpdated }: {
       const answer = await api.sendDialogMessage(application.id, { text: text.trim().slice(0, 2000) });
       setState(answer); setInput('');
     } catch (caught) {
-      if (caught instanceof ApiError && caught.code === 'AI_UNAVAILABLE') setMode('form');
+      if (caught instanceof ApiError && caught.code === 'AI_UNAVAILABLE') {
+        setFormNote('Помощник сейчас не смог ответить. Мы перенесли в форму то, что вы уже рассказали, — проверьте и дополните.');
+        setMode('form');
+      }
       else setError(caught instanceof ApiError ? caught.message : 'Не удалось отправить сообщение.');
     } finally { setWorking(false); }
   }
@@ -54,7 +58,11 @@ export function DialogStep({ application, onSaved, onUpdated }: {
     if (!state?.collected || working) return;
     setWorking(true); setError('');
     try { await api.saveGoals(application.id, state.collected); onSaved(); }
-    catch (caught) { setError(caught instanceof ApiError ? caught.message : 'Не удалось сохранить цели.'); }
+    catch (caught) {
+      const sets = questions as { common?: { questions?: { id: string; text: string }[] }; goals?: { questions?: { id: string; text: string }[] }[] } | null;
+      const all = [...(sets?.common?.questions ?? []), ...(sets?.goals ?? []).flatMap((g) => g.questions ?? [])];
+      setError(errorText(caught, 'Не удалось сохранить цели.', (id) => all.find((q) => q.id === id)?.text));
+    }
     finally { setWorking(false); }
   }
 
@@ -69,11 +77,18 @@ export function DialogStep({ application, onSaved, onUpdated }: {
   }
 
   if (mode === 'loading') return <Spinner label="Проверяем доступность помощника…" />;
+  // Что уже собрал чат: при переходе на форму цели и ответы подставляются, а не теряются.
+  const collectedGoals = (state?.collected?.goals ?? []).map((g) => g.goalType);
+  const collectedValues = valuesFromAnswers([
+    ...(state?.collected?.goals ?? []).flatMap((g) => g.answers ?? []),
+    ...(state?.collected?.commonAnswers ?? []),
+  ]);
   if (mode === 'form') return <>
     {error ? <Notice tone="error">{error}</Notice> : null}
-    <GoalChoiceStep application={application} onSaved={onSaved} />
+    <GoalChoiceStep application={application} onSaved={onSaved} initialGoals={collectedGoals} initialValues={collectedValues}
+      note={formNote || (collectedGoals.length ? 'Мы перенесли в форму то, что вы уже рассказали помощнику, — проверьте и дополните.' : undefined)} />
   </>;
-  if (selected) return <GoalQuestionsStep key={selected} goalType={selected} application={application} onSaved={onSaved} onBack={() => setSelected(null)} />;
+  if (selected) return <GoalQuestionsStep key={selected} goalTypes={[selected]} initialValues={collectedValues} application={application} onSaved={onSaved} onBack={() => setSelected(null)} />;
 
   const escalated = state?.state === 'ESCALATED';
   // llm-contract.md показывает assistantText, но утверждённый OpenAPI пока его
@@ -83,13 +98,13 @@ export function DialogStep({ application, onSaved, onUpdated }: {
   const lastAssistant = [...(state?.messages ?? [])].reverse().find((m) => m.role === 'ASSISTANT');
   const choices = (questions?.goals ?? []).filter((goal) => application.hasBusiness ? goal.goalType !== 'START_BUSINESS' : goal.goalType === 'START_BUSINESS');
   return <section className="flow-step dialog-step" aria-label="Диалог с финансовым помощником">
-    <div className="flow-step__heading"><span className="flow-step__number">05</span><div><p className="eyebrow">Ваши планы</p><h2>Расскажите, для чего нужны деньги</h2><p>Помощник задаст вопросы, а окончательные условия рассчитает сервер.</p></div></div>
+    <div className="flow-step__heading"><span className="flow-step__number">05</span><div><p className="eyebrow">Ваши планы</p><h2>Расскажите, для чего нужны деньги</h2><p>Помощник задаст несколько вопросов. Условия финансирования рассчитает банк по своим правилам.</p></div></div>
     <div className="dialog-step__messages" role="log" aria-live="polite">
       {state?.messages.map((message, index) => <div key={`${message.at}-${index}`} className={`dialog-step__message dialog-step__message--${message.role.toLowerCase()}`}><strong>{message.role === 'ASSISTANT' ? 'Помощник' : 'Вы'}</strong><p>{message.text}</p></div>)}
       {assistantText && assistantText !== lastAssistant?.text ? <div className="dialog-step__message dialog-step__message--assistant"><strong>Помощник</strong><p>{assistantText}</p></div> : null}
     </div>
     {state?.state === 'SUMMARY' ? <div className="goal-question__summary"><h3>Проверьте сводку</h3><p>{state.summaryText ?? 'Подтвердите собранные ответы перед расчётом сметы.'}</p>
-      {state.collected ? <Button loading={working} onClick={() => void confirmSummary()}>Всё верно</Button> : <Notice tone="info">Сервер не прислал собранные ответы. Можно заполнить форму самостоятельно.</Notice>}
+      {state.collected ? <Button loading={working} onClick={() => void confirmSummary()}>Всё верно</Button> : <Notice tone="info">Не удалось получить собранные ответы. Заполните, пожалуйста, обычную форму.</Notice>}
     </div> : null}
     {escalated ? <div className="goal-question__card"><h3>Не удалось определить цель. Выберите подходящий вариант</h3>
       {!choices.length ? <Notice tone="info">Варианты целей временно недоступны. Вы можете передать задачу сотруднику или попробовать обычную форму.</Notice> : null}

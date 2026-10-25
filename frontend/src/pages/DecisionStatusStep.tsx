@@ -69,7 +69,7 @@ export function DecisionStatusStep({ application, preview = false, onRefresh }: 
       {typeof application.rejection?.retryAfterMonths === 'number' ? <p className="decision-retry">Повторно обратиться можно через {application.rejection.retryAfterMonths} мес.</p> : null}
     </div> : null}
     {pending ? <Notice tone="info">{checking ? 'Данные проверяются. Пока от вас не требуется действий.' : 'Пока от вас не требуется действий. Обновите статус, чтобы проверить решение.'} {application.status === 'MANUAL_REVIEW' && formattedDeadline(application.reviewDeadline) ? formattedDeadline(application.reviewDeadline) : ''}</Notice> : null}
-    {issued ? <Notice tone="success">Заявка отмечена сервером как выданная. График платежей доступен в кабинете.</Notice> : null}
+    {issued ? <Notice tone="success">Финансирование выдано. График платежей доступен в кабинете.</Notice> : null}
     {preview ? <Notice tone="info">Демонстрационный экран. Все сведения вымышленные; он не связан с реальной заявкой.</Notice> : null}
     {pending && !preview && onRefresh ? <div className="flow-step__actions"><Button variant="secondary" onClick={onRefresh}>Обновить статус</Button></div> : null}
   </section>;

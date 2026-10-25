@@ -1,8 +1,11 @@
 """Схемы ответов модели и их проверка. Не прошло — AIUnavailable (llm-contract.md, правила 2–3)."""
+import logging
 import re
 
 from .errors import AIUnavailable
 from . import guard
+
+log = logging.getLogger("app.ai")
 
 NULLABLE_STR = {"type": ["string", "null"]}
 ANSWER = {"type": "object", "additionalProperties": False, "required": ["questionId", "value"],
@@ -109,6 +112,9 @@ def _num(v, integer: bool):
     return None
 
 
+_OKVED_CODES: set | None = None   # коды справочника на время одной проверки диалога
+
+
 def check_value(q: dict, v):
     """Проверить и привести значение ответа к типу вопроса (question-sets.json)."""
     qid, t = q["id"], q["type"]
@@ -134,9 +140,9 @@ def check_value(q: dict, v):
             return v
         fail(f"{qid}: вариант не из списка")
     if t == "okved":
-        if isinstance(v, str) and OKVED.match(v.strip()):
+        if isinstance(v, str) and OKVED.match(v.strip()) and (_OKVED_CODES is None or v.strip() in _OKVED_CODES):
             return v.strip()
-        fail(f"{qid}: неверный код ОКВЭД")
+        fail(f"{qid}: не код ОКВЭД из справочника")
     if t == "text":
         if not isinstance(v, str):
             fail(f"{qid}: нужен текст")
@@ -147,7 +153,10 @@ def check_value(q: dict, v):
     fail(f"{qid}: неизвестный тип вопроса")
 
 
-def _answers(raw, allowed: dict, where: str) -> list:
+def _answers(raw, allowed: dict, where: str, dropped: list | None = None) -> list:
+    """Ответы одной цели. Чужой вопрос или повтор — весь ответ модели отбрасывается (контракт, правило 3).
+    Неподходящее значение (например, «пекарня» вместо кода ОКВЭД) — убираем только этот ответ:
+    вопрос зададут ещё раз или его заполнит форма. Причина — в dropped (для лога)."""
     if not isinstance(raw, list):
         fail(f"{where}: ответы не списком")
     out, seen = [], set()
@@ -160,11 +169,32 @@ def _answers(raw, allowed: dict, where: str) -> list:
         if qid in seen:
             fail(f"{where}: вопрос {qid} дважды")
         seen.add(qid)
-        out.append({"questionId": qid, "value": check_value(allowed[qid], a.get("value"))})
+        try:
+            out.append({"questionId": qid, "value": check_value(allowed[qid], a.get("value"))})
+        except AIUnavailable as e:
+            if dropped is None:
+                raise
+            dropped.append(str(e).replace("Ответ ИИ не прошёл проверку: ", ""))
     return out
 
 
-def dialog_step(r: dict, question_sets: dict) -> dict:
+def _missing_required(goals: list, goals_qs: dict, common_qs: dict, common: list) -> str | None:
+    """Первый обязательный вопрос без ответа (null при unknownAllowed считается ответом)."""
+    for g in goals:
+        have = {a["questionId"] for a in g["answers"]}
+        for qid, q in goals_qs[g["goalType"]].items():
+            if q.get("required") and qid not in have:
+                return qid
+    have = {a["questionId"] for a in common}
+    for qid, q in common_qs.items():
+        if q.get("required") and qid not in have:
+            return qid
+    return None
+
+
+def dialog_step(r: dict, question_sets: dict, okved_codes: set | None = None) -> dict:
+    global _OKVED_CODES
+    _OKVED_CODES = okved_codes
     goals_qs = {g["goalType"]: {q["id"]: q for q in g["questions"]} for g in question_sets.get("goals", [])}
     common_qs = {q["id"]: q for q in question_sets.get("common", {}).get("questions", [])}
     for k in ("summaryText", "currentQuestionId"):
@@ -184,17 +214,26 @@ def dialog_step(r: dict, question_sets: dict) -> dict:
     raw_goals = col.get("goals")
     if not isinstance(raw_goals, list) or len(raw_goals) > 3:
         fail("целей не 0–3")
-    goals, seen = [], set()
+    goals, seen, dropped = [], set(), []
     for g in raw_goals:
         gt = g.get("goalType") if isinstance(g, dict) else None
         if gt not in goals_qs or gt in seen:
             fail(f"цель {gt!r} не из списка или повторяется")
         seen.add(gt)
-        goals.append({"goalType": gt, "answers": _answers(g.get("answers", []), goals_qs[gt], gt)})
-    common = _answers(col.get("commonAnswers", []), common_qs, "common")
+        goals.append({"goalType": gt, "answers": _answers(g.get("answers", []), goals_qs[gt], gt, dropped)})
+    common = _answers(col.get("commonAnswers", []), common_qs, "common", dropped)
     if state == "SUMMARY" and not goals:
         fail("сводка без целей")
+    all_qs = {**common_qs, **{k: v for g in goals_qs.values() for k, v in g.items()}}
     qid = r.get("currentQuestionId")
+    if state == "SUMMARY":
+        # Сводка, а обязательный вопрос без ответа (модель поторопилась или ответ убрали выше) —
+        # вместо сводки задаём этот вопрос, иначе «Всё верно» упадёт на PUT /goals.
+        miss = _missing_required(goals, goals_qs, common_qs, common)
+        if miss:
+            state, qid, summary = "ASKING", miss, None
+            text = all_qs[miss]["text"]
+            dropped.append(f"сводка без ответа на обязательный {miss} — задаём этот вопрос")
     if state == "ASKING" and not goals:
         qid = None   # уточняющий вопрос «на что нужны деньги?»; через 2 сообщения сервер сам ставит ESCALATED
     elif state == "ASKING":
@@ -203,15 +242,18 @@ def dialog_step(r: dict, question_sets: dict) -> dict:
             fail(f"вопрос {qid!r} не из целей клиента")
     else:
         qid = None
-    replies = r.get("quickReplies") or []
+    # кнопки модели относятся к её вопросу; если вопрос заменили выше — её кнопки не показываем
+    replies = (r.get("quickReplies") or []) if state == "ASKING" and r.get("currentQuestionId") == qid else []
     if not isinstance(replies, list):
         replies = []
-    all_qs = {**common_qs, **{k: v for g in goals_qs.values() for k, v in g.items()}}
     fixed = fixed_replies(all_qs[qid]) if qid in all_qs else None
     if fixed is not None:
         replies = fixed
-    replies = [guard.clean_client_text(x.strip(), 40) for x in replies
+    reply_len = 70 if qid in all_qs and all_qs[qid]["type"] == "okved" else 40   # «10.71 Производство хлеба…»
+    replies = [guard.clean_client_text(x.strip(), reply_len) for x in replies
                if isinstance(x, str) and x.strip() and not CODE.match(x.strip())][:5]   # коды вроде REPLACEMENT не показываем
+    for d in dropped:
+        log.warning("ИИ (диалог): часть ответа убрана — %s", d)
     return {"state": state, "assistantText": text, "currentQuestionId": qid, "quickReplies": replies,
             "collected": {"source": "AI", "goals": goals, "commonAnswers": common}, "summaryText": summary}
 

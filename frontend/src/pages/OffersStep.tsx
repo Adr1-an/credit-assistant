@@ -56,7 +56,7 @@ export function OffersStep({ application, preview = false, onUpdated }: Props) {
     try {
       const updated = await api.selectOffer(application.id, id);
       onUpdated?.(updated);
-      if (updated.nextAction === 'CHOOSE_OFFER') setInfo('Сервер получил выбор, но оставил заявку на текущем этапе. Обновите статус позже.');
+      if (updated.nextAction === 'CHOOSE_OFFER') setInfo('Выбор сохранён. Обновите страницу, если следующий шаг не появился.');
     } catch (err) {
       setError(errText(err));
     } finally {
@@ -72,7 +72,7 @@ export function OffersStep({ application, preview = false, onUpdated }: Props) {
     {error ? <Notice tone="error">{error}</Notice> : null}
     {info ? <Notice tone="info">{info}</Notice> : null}
     {!loading && !preview && error ? <Button variant="secondary" onClick={() => setRevision((x) => x + 1)}>Повторить загрузку</Button> : null}
-    {!loading && !error && offers.length === 0 ? <Notice tone="info">Сервер пока не вернул предложений. Попробуйте обновить страницу позже.</Notice> : null}
+    {!loading && !error && offers.length === 0 ? <Notice tone="info">Предложений пока нет. Попробуйте обновить страницу позже.</Notice> : null}
     <div className="offer-list">
       {!loading && offers.map((offer) => {
         const grace = offer.products.some((product) => (product.gracePeriodMonths ?? 0) > 0);

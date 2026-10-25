@@ -123,7 +123,7 @@ export function ApplicationPage({ id, onHome }: { id: string; onHome: () => void
             <DecisionStatusStep application={application} />
           ) : null}
           {!['GIVE_CONSENT', 'RETRY_CHECKS', 'WAIT', 'NONE', 'UPLOAD_STATEMENT', 'SET_GOALS', 'REVIEW_ESTIMATE', 'SUBMIT', 'ANSWER_INFO_REQUEST', 'CHOOSE_OFFER', 'SIGN'].includes(application.nextAction) ? (
-            <div className="application-card__body"><h2>{application.statusText}</h2><p>Этот этап клиентской воронки добавим в следующей части. Заявка уже сохранена на сервере. После возвращения на страницу этап снова будет определён по <code>nextAction</code>.</p><Button variant="secondary" onClick={() => void refresh()}>Обновить заявку</Button></div>
+            <div className="application-card__body"><h2>{application.statusText}</h2><p>Заявка сохранена. Обновите страницу, чтобы увидеть следующий шаг.</p><Button variant="secondary" onClick={() => void refresh()}>Обновить заявку</Button></div>
           ) : null}
           {application.status !== 'DRAFT' && !(application.statusText === 'string') && application.checks?.length ? (
             <section className="checks-panel" aria-label="Результаты проверок"><h3>Результаты проверок</h3><ul className="checks-panel__list">{application.checks.map((check, index) => (

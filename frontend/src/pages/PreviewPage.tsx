@@ -49,7 +49,7 @@ export function PreviewPage({ variant }: { variant: Variant }) {
       {variant === 'statement' ? <StatementStep preview /> : null}
       {variant === 'goals' ? <GoalChoiceStep preview /> : null}
       {variant === 'new-business' ? <GoalChoiceStep preview previewNewBusiness /> : null}
-      {variant === 'questions' ? <GoalQuestionsStep goalType="NEW_LOCATION" preview onBack={() => { window.location.href = '/preview/goals'; }} /> : null}
+      {variant === 'questions' ? <GoalQuestionsStep goalTypes={['NEW_LOCATION']} preview onBack={() => { window.location.href = '/preview/goals'; }} /> : null}
       {variant === 'estimate' ? <EstimateStep preview /> : null}
       {variant === 'status' ? <DecisionStatusStep preview application={PREVIEW_BASE} /> : null}
       {variant === 'offers' ? <OffersStep preview /> : null}

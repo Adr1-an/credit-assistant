@@ -44,13 +44,35 @@ type ApiErrorResponse = components['schemas']['Error'];
 export class ApiError extends Error {
   readonly code: ApiErrorCode | null;
   readonly status: number;
+  /** details из ответа сервера, например details.problems при VALIDATION_ERROR. */
+  readonly details: Record<string, unknown> | null;
 
-  constructor(message: string, status: number, code: ApiErrorCode | null = null) {
+  constructor(message: string, status: number, code: ApiErrorCode | null = null, details: Record<string, unknown> | null = null) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.status = status;
+    this.details = details;
   }
+}
+
+/**
+ * Текст ошибки для клиента: message сервера и, если есть, details.problems —
+ * какой ответ не подошёл и почему. questionText(id) подставляет текст вопроса вместо id.
+ */
+export function errorText(error: unknown, fallback: string, questionText?: (questionId: string) => string | undefined): string {
+  if (!(error instanceof ApiError)) return fallback;
+  const raw = error.details?.problems;
+  const problems: unknown[] = Array.isArray(raw) ? raw : [];
+  const lines = problems.flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const { field, problem } = item as { field?: unknown; problem?: unknown };
+    if (typeof problem !== 'string') return [];
+    const id = typeof field === 'string' ? field.match(/([a-z]+\.[A-Za-z]+)$/)?.[1] : undefined;
+    const label = (id && questionText?.(id)) || (typeof field === 'string' ? field : '');
+    return [label ? `«${label}» — ${problem}` : problem];
+  });
+  return lines.length ? `${error.message}: ${lines.join('; ')}.` : error.message;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -80,6 +102,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       serverError?.message ?? 'Сервис временно недоступен. Попробуйте повторить действие.',
       response.status,
       serverError?.code ?? null,
+      serverError?.details ?? null,
     );
   }
   return (await response.json()) as T;

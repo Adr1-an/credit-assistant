@@ -92,7 +92,7 @@ function DecisionPanel({ id, preview, card, onUpdated }: { id: string; preview: 
   return <section className="staff-section staff-decision" aria-labelledby="staff-decision-title">
     <div className="staff-section__heading"><div><p className="eyebrow">Решение специалиста</p><h2 id="staff-decision-title">Как поступим с заявкой?</h2></div></div>
     {preview ? <Notice tone="info">Предпросмотр: можно менять варианты и заполнять форму, но отправка решений отключена.</Notice> : null}
-    {!canDecide ? <Notice tone="info">Сейчас статус «{statusText[card.application.status]}». Решение сотрудника по схеме переходов возможно только из статуса «На рассмотрении».</Notice> : null}
+    {!canDecide ? <Notice tone="info">Сейчас статус «{statusText[card.application.status]}». Решение можно принять, только когда заявка в статусе «На рассмотрении».</Notice> : null}
     <form onSubmit={(event) => void submit(event)} noValidate>
       <fieldset className="staff-decision__options" disabled={!canDecide || working}><legend>Выберите одно действие</legend>
         {(['APPROVE', 'CHANGE_TERMS', 'REQUEST_INFO', 'REJECT'] as DecisionAction[]).map((option) => <label key={option} className={`staff-decision__option ${action === option ? 'staff-decision__option--active' : ''}`}><input type="radio" checked={action === option} onChange={() => { setAction(option); setError(''); }} name="decision" value={option} /><span>{actionText[option]}</span></label>)}

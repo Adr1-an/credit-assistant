@@ -109,7 +109,7 @@ export function StatementStep({ application, preview = false, onUpdated }: Props
           {application?.inn ? (
             <a className="flow-step__download" href={`/api/demo/statements/${encodeURIComponent(application.inn)}`} download>↓ Скачать тестовую выписку для этого ИНН</a>
           ) : (
-            <p className="flow-step__fine">Тестовую выписку можно скачать из заявки действующего ИП, когда сервер вернёт ИНН.</p>
+            <p className="flow-step__fine">Тестовую выписку можно скачать на главной странице, в блоке «Тестовые клиенты».</p>
           )}
           {busy ? <Spinner label="Отправляем выписку и получаем сведения…" /> : null}
           {summary ? (

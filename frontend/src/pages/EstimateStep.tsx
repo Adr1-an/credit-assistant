@@ -74,7 +74,7 @@ export function EstimateStep({ application, preview = false, onUpdated }: Props)
       // Поэтому следующий экран определяем отдельным GET заявки.
       const latest = await api.getApplication(application.id);
       onUpdated?.(latest);
-      if (latest.nextAction === 'REVIEW_ESTIMATE') setMessage('Смета сохранена. Сервер пока оставил заявку на проверке сметы.');
+      if (latest.nextAction === 'REVIEW_ESTIMATE') setMessage('Смета сохранена. Теперь можно отправить заявку на решение.');
     } catch (caught) { setError(errorMessage(caught)); }
     finally { setBusy(false); }
   }
@@ -83,9 +83,16 @@ export function EstimateStep({ application, preview = false, onUpdated }: Props)
     if (!application || busy || changed) return;
     setBusy(true); setError(''); setMessage('');
     try {
+      // Смету без правок тоже нужно подтвердить: сервер ждёт PUT /estimate (nextAction = REVIEW_ESTIMATE).
+      // Поэтому при первой отправке подтверждаем смету как есть и сразу отправляем заявку.
+      if (application.nextAction === 'REVIEW_ESTIMATE' && estimate) {
+        const items: EstimateUpdateRequest['items'] = estimate.items.map((item) => (
+          item.excluded ? { id: item.id, excluded: true } : { id: item.id, amount: item.amount, excluded: false }));
+        await api.updateEstimate(application.id, { items });
+      }
       const next = await api.submitApplication(application.id);
       onUpdated?.(next);
-      if (next.nextAction === 'SUBMIT' || next.nextAction === 'REVIEW_ESTIMATE') setMessage('Запрос отправлен, но сервер ещё не перевёл заявку на другой этап.');
+      if (next.nextAction === 'SUBMIT' || next.nextAction === 'REVIEW_ESTIMATE') setMessage('Заявка отправлена. Обновите страницу, если следующий шаг не появился.');
     } catch (caught) { setError(errorMessage(caught)); }
     finally { setBusy(false); }
   }
@@ -108,8 +115,8 @@ export function EstimateStep({ application, preview = false, onUpdated }: Props)
       {changed && !preview ? <Notice tone="info">Есть несохранённые изменения. После нажатия «Сохранить смету» сервер вернёт новую сумму. Здесь мы не рассчитываем кредит самостоятельно.</Notice> : null}
       {estimate.startSmallerSuggested ? <Notice tone="info">По данным расчёта может быть безопаснее начать с меньшего масштаба. Можно проверить статьи сметы перед отправкой.</Notice> : null}
       {message ? <Notice tone="success">{message}</Notice> : null}
-      <div className="flow-step__actions"><Button disabled={preview || !changed || invalid} loading={busy} onClick={() => void save()}>Сохранить смету</Button><Button variant="secondary" disabled={preview || invalid || changed || application?.nextAction !== 'SUBMIT'} loading={busy} onClick={() => void submit()}>Отправить заявку на решение</Button></div>
-      {!preview && application?.nextAction !== 'SUBMIT' ? <p className="flow-step__fine">Заявку можно отправить на решение только после того, как сервер вернёт nextAction = SUBMIT.</p> : null}
+      <div className="flow-step__actions"><Button disabled={preview || !changed || invalid} loading={busy} onClick={() => void save()}>Сохранить смету</Button><Button variant="secondary" disabled={preview || invalid || changed || !(application?.nextAction === 'SUBMIT' || application?.nextAction === 'REVIEW_ESTIMATE')} loading={busy} onClick={() => void submit()}>Отправить заявку на решение</Button></div>
+      {!preview && changed ? <p className="flow-step__fine">Сначала сохраните изменения в смете, затем отправьте заявку.</p> : null}
       {preview ? <p className="flow-step__fine">В предпросмотре поля редактируются локально. В реальной заявке итог возвращает сервер из PUT /estimate, а не браузер.</p> : null}
     </> : null}
   </section>;
