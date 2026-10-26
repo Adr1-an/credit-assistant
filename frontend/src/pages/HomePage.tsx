@@ -2,18 +2,36 @@ import { useEffect, useState } from 'react';
 import { api, ApiError } from '../api/client';
 import type { DemoClient } from '../api/client';
 import { Button, Notice, Spinner } from '../components';
-
+ 
 type Props = {
   onStart: () => void;
   onSelectDemo: (client: DemoClient) => void;
 };
-
+ 
 export function HomePage({ onStart, onSelectDemo }: Props) {
   const [clients, setClients] = useState<DemoClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reloadIndex, setReloadIndex] = useState(0);
-
+  const [resetting, setResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetFailed, setResetFailed] = useState(false);
+ 
+  async function resetDemo() {
+    if (resetting) return;
+    if (!window.confirm('Удалить все тестовые заявки из базы, чтобы оформить их заново? Это нельзя отменить.')) return;
+    setResetting(true); setResetMessage(''); setResetFailed(false);
+    try {
+      const result = await api.resetDemo();
+      setResetMessage(`Готово: удалено заявок — ${result.deletedApplications}. Можно оформлять заново.`);
+    } catch (err) {
+      setResetFailed(true);
+      setResetMessage(err instanceof ApiError ? err.message : 'Не удалось очистить базу. Попробуйте ещё раз.');
+    } finally {
+      setResetting(false);
+    }
+  }
+ 
   useEffect(() => {
     let current = true;
     setLoading(true);
@@ -26,7 +44,7 @@ export function HomePage({ onStart, onSelectDemo }: Props) {
       .finally(() => { if (current) setLoading(false); });
     return () => { current = false; };
   }, [reloadIndex]);
-
+ 
   return (
     <main id="main" className="client-content home-page">
       <section className="home-hero" aria-labelledby="home-title">
@@ -46,18 +64,22 @@ export function HomePage({ onStart, onSelectDemo }: Props) {
           <div className="hero-bubble hero-bubble--two">✓</div>
         </div>
       </section>
-
+ 
       <section className="home-benefits" aria-label="Всё по шагам">
         <div className="home-benefit"><span className="home-benefit__icon">1</span><h2>Расскажите о себе</h2><p>Паспорт, ИНН и согласие на проверку.</p></div>
         <div className="home-benefit"><span className="home-benefit__icon">2</span><h2>Выберите цель</h2><p>Поможем собрать смету в понятных рублях.</p></div>
         <div className="home-benefit"><span className="home-benefit__icon">3</span><h2>Следите за заявкой</h2><p>Покажем этап, дальнейшие действия и срок ответа.</p></div>
       </section>
-
+ 
       <section className="demo-section" aria-labelledby="demo-title">
         <div className="demo-section__heading">
           <div><p className="eyebrow">Для демонстрации жюри</p><h2 id="demo-title">Тестовые клиенты</h2><p>Выберите готовый сценарий. Данные автоматически появятся в анкете — можно будет их проверить и исправить.</p></div>
-          <div className="demo-section__chip">Синтетические данные</div>
+          <div className="demo-section__tools">
+            <div className="demo-section__chip">Синтетические данные</div>
+            <Button variant="quiet" size="small" loading={resetting} onClick={() => void resetDemo()}>Очистить тестовые заявки</Button>
+          </div>
         </div>
+        {resetMessage ? <Notice tone={resetFailed ? 'error' : 'success'}>{resetMessage}</Notice> : null}
         {loading ? <div className="demo-section__status"><Spinner label="Загружаем тестовых клиентов…" /></div> : null}
         {error && !loading ? <div className="demo-section__status"><Notice tone="error">{error}</Notice><Button variant="secondary" onClick={() => setReloadIndex((v) => v + 1)}>Повторить</Button></div> : null}
         {!error && !loading && clients.length === 0 ? <Notice tone="info">Тестовых клиентов пока нет. Можно заполнить анкету самостоятельно.</Notice> : null}
