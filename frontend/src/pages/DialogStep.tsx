@@ -108,6 +108,7 @@ export function DialogStep({ application, onSaved, onUpdated }: {
   const choices = (questions?.goals ?? []).filter((goal) => application.hasBusiness ? goal.goalType !== 'START_BUSINESS' : goal.goalType === 'START_BUSINESS');
   return <section className="flow-step dialog-step" aria-label="Диалог с финансовым помощником">
     <div className="flow-step__heading"><span className="flow-step__number">05</span><div><p className="eyebrow">Ваши планы</p><h2>Расскажите, для чего нужны деньги</h2><p>Помощник задаст несколько вопросов. Условия финансирования рассчитает банк по своим правилам.</p></div></div>
+    <span className="dialog-step__badge">Чат с ИИ-ассистентом</span>
     <div className="dialog-step__messages" role="log" aria-live="polite">
       {state?.messages.map((message, index) => <div key={`${message.at}-${index}`} className={`dialog-step__message dialog-step__message--${message.role.toLowerCase()}`}><strong>{message.role === 'ASSISTANT' ? 'Помощник' : 'Вы'}</strong><p>{message.text}</p></div>)}
       {assistantText && assistantText !== lastAssistant?.text ? <div className="dialog-step__message dialog-step__message--assistant"><strong>Помощник</strong><p>{assistantText}</p></div> : null}
@@ -132,11 +133,12 @@ export function DialogStep({ application, onSaved, onUpdated }: {
         {!customAnswer ? <div style={{ marginTop: 10 }}><Button variant="quiet" size="small" disabled={working} onClick={() => setCustomAnswer(true)}>Ответить своими словами</Button></div> : null}
       </> : null}
       {!state.quickReplies?.length || customAnswer ? (
-        <form onSubmit={(event) => { event.preventDefault(); void send(input); }}><label className="goal-question__textarea"><span>Ваш ответ</span><textarea rows={3} value={input} maxLength={2000} onChange={(event) => setInput(event.target.value)} placeholder="Напишите своими словами…" /></label><Button type="submit" loading={working} disabled={!input.trim()}>Отправить ответ</Button></form>
+        <form onSubmit={(event) => { event.preventDefault(); void send(input); }}><label className="goal-question__textarea"><span>Ваш ответ</span><textarea rows={3} value={input} maxLength={2000} onChange={(event) => setInput(event.target.value)} placeholder="Напишите своими словами…" /></label><div style={{ marginTop: 14 }}><Button type="submit" loading={working} disabled={!input.trim()}>Отправить ответ</Button></div></form>
       ) : null}
     </> : null}
     {error ? <Notice tone="error">{error}</Notice> : null}
-    <div className="flow-step__actions"><Button variant="secondary" onClick={() => setMode('form')}>Перейти к обычной форме</Button></div>
+    <div className="flow-step__actions"><Button variant="secondary" onClick={() => setMode('form')}>Не хочу общаться с ИИ — заполнить форму вручную</Button></div>
   </section>;
 }
+
 
