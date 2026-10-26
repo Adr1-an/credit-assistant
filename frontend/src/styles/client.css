@@ -412,6 +412,7 @@
   .after-demo__controls > .ui-button { width: 100%; }
 }
 /* Диалог с ИИ: сохраняем стили существующей воронки и разделяем роли. */
+.dialog-step__badge { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; padding: 6px 13px; border-radius: 999px; background: #fff0ee; color: #ef3124; font-size: 13px; font-weight: 700; }
 .dialog-step__messages { display: grid; gap: 12px; margin: 22px 0; }
 .dialog-step__message { padding: 16px 20px; border-radius: 16px; background: #f5f6f8; max-width: 92%; }
 .dialog-step__message--client { background: #ffe7eb; margin-left: auto; }
