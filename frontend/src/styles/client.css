@@ -35,6 +35,7 @@
 .demo-section__heading h2 { font-size: clamp(35px, 4.3vw, 55px); line-height: 1.07; margin: 0 0 14px; letter-spacing: -.045em; }
 .demo-section__heading p:last-child { line-height: 1.55; color: #62646b; margin: 0; font-size: 17px; }
 .demo-section__chip { font-size: 13px; font-weight: 600; border-radius: 50px; padding: 11px 16px; background: #f3f3f5; flex: none; }
+.demo-section__tools { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex: none; }
 .demo-section__status { background: #f3f3f5; padding: 26px; border-radius: 25px; display: grid; justify-items: start; gap: 16px; }
 .demo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .demo-card { background: #f1f2f4; border-radius: 30px; padding: 28px; display: flex; flex-direction: column; min-height: 290px; }
@@ -156,7 +157,7 @@
   .application-card { border-radius: 25px; }
 }
 @media (prefers-reduced-motion: reduce) { .checks-panel__item { animation: none; } }
-
+ 
 /* Этап 3: загрузка выписки, анкета без выписки и цели. */
 .application-card:has(.flow-step) { max-width: 1050px; }
 .flow-step { min-width: 0; }
@@ -215,7 +216,7 @@
   .flow-step__actions .ui-button { width: 100%; }
   .file-drop { min-height: 215px; }
 }
-
+ 
 /* Этап 4: один вопрос на экране и смета. */
 .goal-question-step .flow-step__heading { margin-top: 7px; }
 .goal-question__progress { margin: 12px 0 19px; display: flex; align-items: center; gap: 22px; font-weight: 700; color: #666971; font-size: 14px; }
@@ -271,7 +272,7 @@
   .goal-question__progress { flex-direction: column; align-items: stretch; gap: 10px; }
   .estimate-total { flex-wrap: wrap; }
 }
-
+ 
 /* Этап 5 — результат, предложение, запрос дополнительных сведений. */
 .decision-tracker { padding: clamp(20px, 3vw, 32px); margin: 20px 0 30px; border-radius: 26px; background: #fff; }
 .decision-tracker h3 { font-size: 22px; margin: 0 0 18px; }
@@ -321,7 +322,7 @@
   .offer-card .ui-button, .info-step__form .ui-button { width: 100%; }
   .offer-card__amount strong { overflow-wrap: anywhere; }
 }
-
+ 
 /* Этап 6: договор, подпись и сопровождение после выдачи. */
 .contract-step, .after-step { color: #202124; }
 .contract-clauses { display: grid; gap: 15px; margin-top: 26px; }
