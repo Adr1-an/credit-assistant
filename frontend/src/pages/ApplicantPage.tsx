@@ -138,8 +138,14 @@ export function ApplicantPage({ demo, onBack, onCreated }: Props) {
             </div>
 
           {serverError ? <div className="apply-form__error"><Notice tone="error">{serverError}</Notice>{serverErrorCode === 'INN_INVALID' ? <p>Проверьте поле ИНН и повторите отправку.</p> : null}</div> : null}
-          {existing ? <section className="application-card__body" aria-label="Существующая заявка"><Notice tone="info">У вас есть заявка от {existing.createdAt ? new Date(existing.createdAt).toLocaleDateString('ru-RU') : 'ранее'}. Продолжить?</Notice><Button type="button" size="large" onClick={() => onCreated(existing.id)}>Продолжить заявку</Button></section> : null}
-          <div className="apply-form__actions"><Button type="submit" size="large" loading={saving}>Продолжить</Button><span>Следующий шаг — ваше согласие на проверку</span></div>
+          {existing ? (
+            <div className="apply-form__actions">
+              <Notice tone="info">У вас есть заявка от {existing.createdAt ? new Date(existing.createdAt).toLocaleDateString('ru-RU') : 'ранее'}.</Notice>
+              <Button type="button" size="large" onClick={() => onCreated(existing.id)}>Продолжить заявку</Button>
+            </div>
+          ) : (
+            <div className="apply-form__actions"><Button type="submit" size="large" loading={saving}>Продолжить</Button><span>Следующий шаг — ваше согласие на проверку</span></div>
+          )}
         </form>
         <aside className="apply-aside"><div className="apply-aside__star" aria-hidden="true">✦</div><h2>Просто и понятно</h2><p>Не нужно разбираться в банковских продуктах. Вы описываете свои планы, а мы показываем возможные варианты финансирования.</p><div className="apply-aside__rule" /><p className="apply-aside__quiet">Проверки начнутся только после вашего согласия на следующем шаге.</p></aside>
       </div>
