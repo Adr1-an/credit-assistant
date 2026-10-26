@@ -1,37 +1,44 @@
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '../api/client';
 import type { DemoClient } from '../api/client';
-import { Button, Notice, Spinner } from '../components';
+import { Button, Modal, Notice, Spinner } from '../components';
  
 type Props = {
   onStart: () => void;
   onSelectDemo: (client: DemoClient) => void;
+  onBankLogin: (applicationId: string, inn: string) => void;
 };
  
-export function HomePage({ onStart, onSelectDemo }: Props) {
+export function HomePage({ onStart, onSelectDemo, onBankLogin }: Props) {
   const [clients, setClients] = useState<DemoClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reloadIndex, setReloadIndex] = useState(0);
-  const [resetting, setResetting] = useState(false);
-  const [resetMessage, setResetMessage] = useState('');
-  const [resetFailed, setResetFailed] = useState(false);
- 
-  async function resetDemo() {
-    if (resetting) return;
-    if (!window.confirm('Удалить все тестовые заявки из базы, чтобы оформить их заново? Это нельзя отменить.')) return;
-    setResetting(true); setResetMessage(''); setResetFailed(false);
+  const [listMode, setListMode] = useState<'bank' | 'other' | null>(null);
+  const [loggingIn, setLoggingIn] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState('');
+
+  // Клиент банка — тот, по чьему счёту у банка есть операции (в прототипе — у кого есть тестовая выписка).
+  const isBankClient = (client: DemoClient) => Boolean(client.hasStatement && client.inn);
+  const shownClients = clients.filter((client) => (listMode === 'bank' ? isBankClient(client) : !isBankClient(client)));
+
+  function openList(mode: 'bank' | 'other') { setLoginError(''); setListMode(mode); }
+
+  async function loginAsBankClient(client: DemoClient) {
+    if (!client.inn || loggingIn) return;
+    setLoggingIn(client.inn); setLoginError('');
     try {
-      const result = await api.resetDemo();
-      setResetMessage(`Готово: удалено заявок — ${result.deletedApplications}. Можно оформлять заново.`);
+      // Анкету не показываем: данные клиента банк уже знает, сразу создаём заявку.
+      const { application } = await api.createApplication({ hasBusiness: client.hasBusiness, passport: { ...client.passport }, inn: client.inn });
+      setListMode(null);
+      onBankLogin(application.id, client.inn);
     } catch (err) {
-      setResetFailed(true);
-      setResetMessage(err instanceof ApiError ? err.message : 'Не удалось очистить базу. Попробуйте ещё раз.');
+      setLoginError(err instanceof ApiError ? err.message : 'Не удалось войти. Попробуйте ещё раз.');
     } finally {
-      setResetting(false);
+      setLoggingIn(null);
     }
   }
- 
+
   useEffect(() => {
     let current = true;
     setLoading(true);
@@ -52,8 +59,11 @@ export function HomePage({ onStart, onSelectDemo }: Props) {
           <p className="home-kicker">Альфа-стиль · финансовый навигатор для ИП</p>
           <h1 id="home-title">Деньги на планы.<br />Не на сложности.</h1>
           <p className="home-hero__description">Расскажите о своём деле — поможем пройти путь от заявки до понятного предложения по финансированию.</p>
-          <Button size="large" onClick={onStart}>Оформить финансирование <span aria-hidden="true">↗</span></Button>
-          <p className="home-hero__hint">Без звонков, SMS и регистрации. Решение по заявке покажем здесь.</p>
+          <div className="home-hero__actions">
+            <Button size="large" onClick={() => openList('bank')}>Я клиент банка</Button>
+            <Button size="large" variant="secondary" onClick={() => openList('other')}>Я не клиент банка</Button>
+          </div>
+          <p className="home-hero__hint">Клиентам банка не нужно заполнять анкету и загружать выписку — банк уже знает их данные.</p>
         </div>
         <div className="home-hero__art" aria-hidden="true">
           <div className="hero-orbit" />
@@ -71,33 +81,31 @@ export function HomePage({ onStart, onSelectDemo }: Props) {
         <div className="home-benefit"><span className="home-benefit__icon">3</span><h2>Следите за заявкой</h2><p>Покажем этап, дальнейшие действия и срок ответа.</p></div>
       </section>
  
-      <section className="demo-section" aria-labelledby="demo-title">
-        <div className="demo-section__heading">
-          <div><p className="eyebrow">Для демонстрации жюри</p><h2 id="demo-title">Тестовые клиенты</h2><p>Выберите готовый сценарий. Данные автоматически появятся в анкете — можно будет их проверить и исправить.</p></div>
-          <div className="demo-section__tools">
-            <div className="demo-section__chip">Синтетические данные</div>
-            <Button variant="quiet" size="small" loading={resetting} onClick={() => void resetDemo()}>Очистить тестовые заявки</Button>
-          </div>
-        </div>
-        {resetMessage ? <Notice tone={resetFailed ? 'error' : 'success'}>{resetMessage}</Notice> : null}
-        {loading ? <div className="demo-section__status"><Spinner label="Загружаем тестовых клиентов…" /></div> : null}
-        {error && !loading ? <div className="demo-section__status"><Notice tone="error">{error}</Notice><Button variant="secondary" onClick={() => setReloadIndex((v) => v + 1)}>Повторить</Button></div> : null}
-        {!error && !loading && clients.length === 0 ? <Notice tone="info">Тестовых клиентов пока нет. Можно заполнить анкету самостоятельно.</Notice> : null}
-        {!error && !loading && clients.length > 0 ? (
-          <div className="demo-grid">
-            {clients.map((client, index) => (
-              <article className="demo-card" key={`${client.inn ?? 'no-inn'}-${index}`}>
-                <div className="demo-card__top"><span className="demo-card__number">{String(index + 1).padStart(2, '0')}</span><span className="demo-card__tag">Тестовые данные</span></div>
-                <h3>{client.businessName || `${client.passport.lastName} ${client.passport.firstName}`}</h3>
-                <p>{client.scenario}</p>
-                <p className="demo-card__details"><strong>Паспорт:</strong> {client.passport.series} {client.passport.number}<br /><strong>ИНН:</strong> {client.inn ?? 'не указан'}</p>
-                {client.hasStatement && client.inn ? <a className="demo-card__statement" href={`/api/demo/statements/${encodeURIComponent(client.inn)}`} download>Скачать выписку</a> : null}
-                <div className="demo-card__footer"><span>{client.hasBusiness ? 'Действующий ИП' : 'Бизнеса пока нет'}</span><Button size="small" onClick={() => onSelectDemo(client)}>Подставить данные</Button></div>
-              </article>
-            ))}
-          </div>
-        ) : null}
-      </section>
+      <Modal open={listMode !== null} onClose={() => setListMode(null)} title={listMode === 'bank' ? 'Вход для клиентов банка' : 'Выберите тестового клиента'}
+        footer={<>{listMode === 'other' ? <Button variant="secondary" onClick={() => { setListMode(null); onStart(); }}>Заполнить анкету самому</Button> : null}<Button variant="quiet" onClick={() => setListMode(null)}>Отмена</Button></>}>
+        <p className="bank-login__hint">{listMode === 'bank'
+          ? 'Имитация входа в интернет-банк. Выберите клиента — анкету заполнять не нужно, выписку по счёту банк возьмёт сам.'
+          : 'Данные клиента появятся в анкете — их можно проверить и исправить.'}</p>
+        {loading ? <Spinner label="Загружаем тестовых клиентов…" /> : null}
+        {error && !loading ? <div className="bank-login__status"><Notice tone="error">{error}</Notice><Button variant="secondary" size="small" onClick={() => setReloadIndex((v) => v + 1)}>Повторить</Button></div> : null}
+        {loginError ? <Notice tone="error">{loginError}</Notice> : null}
+        {!loading && !error && shownClients.length === 0 ? <Notice tone="info">В тестовых данных таких клиентов нет.</Notice> : null}
+        <ul className="bank-login__list">
+          {shownClients.map((client, index) => (
+            <li key={`${client.inn ?? 'no-inn'}-${index}`} className="bank-login__item">
+              <div>
+                <strong>{client.businessName || `${client.passport.lastName} ${client.passport.firstName}`}</strong>
+                <small>{client.scenario}</small>
+                {listMode === 'other' ? <small>Паспорт: {client.passport.series} {client.passport.number} · ИНН: {client.inn ?? 'не указан'}</small> : null}
+                {listMode === 'other' && client.hasStatement && client.inn ? <a className="demo-card__statement" href={`/api/demo/statements/${encodeURIComponent(client.inn)}`} download>Скачать выписку</a> : null}
+              </div>
+              {listMode === 'bank'
+                ? <Button size="small" loading={loggingIn === client.inn} disabled={Boolean(loggingIn)} onClick={() => void loginAsBankClient(client)}>Войти</Button>
+                : <Button size="small" onClick={() => { setListMode(null); onSelectDemo(client); }}>Подставить данные</Button>}
+            </li>
+          ))}
+        </ul>
+      </Modal>
       <footer className="client-footnote">Учебный прототип для хакатона. Проверки и данные клиентов — синтетические; реальные банковские операции не выполняются.</footer>
     </main>
   );

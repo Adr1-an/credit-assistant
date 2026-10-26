@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { api, ApiError } from '../api/client';
 import type { Application, Questionnaire, StatementSummary } from '../api/client';
 import { Button, Notice, Spinner, TextField } from '../components';
+import { bankClientInn, forgetBankClient } from '../app/bankClient';
 
 type Props = {
   application?: Application;
@@ -40,6 +41,31 @@ export function StatementStep({ application, preview = false, onUpdated }: Props
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  // Клиент банка: выписку по счёту банк подтягивает сам, клиенту ничего загружать не нужно.
+  const bankInn = application && !preview && bankClientInn(application.id) ? (application.inn ?? bankClientInn(application.id)) : null;
+  const [autoState, setAutoState] = useState<'idle' | 'loading' | 'failed'>(bankInn ? 'loading' : 'idle');
+  const autoStarted = useRef(false);
+
+  useEffect(() => {
+    if (!bankInn || !application || autoStarted.current) return;
+    autoStarted.current = true;
+    void (async () => {
+      try {
+        const response = await fetch(`/api/demo/statements/${encodeURIComponent(bankInn)}`);
+        if (!response.ok) throw new Error('statement not found');
+        const blob = await response.blob();
+        const result = await api.uploadStatement(application.id, new File([blob], `${bankInn}.csv`, { type: 'text/csv' }));
+        setSummary(result);
+        forgetBankClient(application.id);
+        onUpdated?.(await api.getApplication(application.id));
+      } catch (caught) {
+        setAutoState('failed');
+        if (caught instanceof ApiError) setError(caught.message);
+      }
+    })();
+  // Запускаем один раз при открытии шага.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function sendStatement() {
     if (!file || !application || busy) return;
@@ -90,8 +116,18 @@ export function StatementStep({ application, preview = false, onUpdated }: Props
     }
   }
 
+  if (autoState === 'loading') {
+    return (
+      <section className="flow-step" aria-label="Сведения о финансах">
+        <div className="flow-step__heading"><span className="flow-step__number">04</span><div><p className="eyebrow">Данные о бизнесе</p><h2>Получаем выписку по вашему счёту</h2><p>Вы клиент банка, поэтому загружать выписку не нужно: операции по счёту за прошлые месяцы банк возьмёт сам.</p></div></div>
+        <Spinner label="Получаем операции по счёту…" />
+      </section>
+    );
+  }
+
   return (
     <section className="flow-step" aria-label="Сведения о финансах">
+      {autoState === 'failed' ? <Notice tone="info">Не получилось получить выписку по счёту автоматически. Загрузите её, пожалуйста, вручную.</Notice> : null}
       {mode === 'statement' ? (
         <>
           <div className="flow-step__heading"><span className="flow-step__number">04</span><div><p className="eyebrow">Данные о бизнесе</p><h2>Добавьте выписку из банка</h2><p>По операциям за прошлые месяцы мы сможем точнее понять доходы и расходы вашего бизнеса.</p></div></div>

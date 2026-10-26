@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ApplicationStatus, StaffApplicationListItem, Zone } from '../api/client';
 import { api } from '../api/client';
-import { Button, Notice, Spinner } from '../components';
+import { Button, Modal, Notice, Spinner } from '../components';
 import { dateText, errorText, rub, statuses, statusText, zones, zoneText } from './staffHelpers';
 import { previewStaffList } from './staffDemo';
 
@@ -14,6 +14,24 @@ export function StaffListPage({ preview = false, onOpen }: Props) {
   const [loading, setLoading] = useState(!preview);
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [deletedInfo, setDeletedInfo] = useState('');
+
+  async function deleteAll() {
+    setDeleting(true); setDeleteError('');
+    try {
+      const { deletedApplications } = await api.resetDemo();
+      setConfirmOpen(false);
+      setDeletedInfo(`Удалено заявок: ${deletedApplications}.`);
+      setRevision((n) => n + 1);
+    } catch (reason) {
+      setDeleteError(errorText(reason));
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     if (preview) return;
@@ -52,8 +70,9 @@ export function StaffListPage({ preview = false, onOpen }: Props) {
             {zones.map((item) => <option key={item} value={item}>{zoneText[item]}</option>)}
           </select>
         </label>
-        <Button variant="secondary" onClick={() => { setStatus(''); setZone(''); }}>Сбросить</Button>
+        <Button variant="secondary" disabled={!status && !zone} onClick={() => { setStatus(''); setZone(''); }}>Сбросить фильтры</Button>
         {!preview ? <Button variant="quiet" onClick={() => setRevision((n) => n + 1)}>Обновить список</Button> : null}
+        {!preview ? <Button variant="quiet" className="staff-delete-all" onClick={() => { setDeleteError(''); setDeletedInfo(''); setConfirmOpen(true); }}>Удалить все заявки</Button> : null}
       </section>
       {loading ? <Spinner label="Загружаем заявки…" /> : null}
       {error ? <div className="staff-error"><Notice tone="error">{error}</Notice><Button variant="secondary" onClick={() => setRevision((n) => n + 1)}>Повторить</Button></div> : null}
@@ -68,6 +87,12 @@ export function StaffListPage({ preview = false, onOpen }: Props) {
           </article>)}
         </div>
       </> : null}
+      {deletedInfo ? <Notice tone="success">{deletedInfo}</Notice> : null}
+      <Modal open={confirmOpen} onClose={() => { if (!deleting) setConfirmOpen(false); }} title="Удалить все заявки?"
+        footer={<><Button variant="secondary" disabled={deleting} onClick={() => setConfirmOpen(false)}>Отмена</Button><Button loading={deleting} onClick={() => void deleteAll()}>Удалить всё</Button></>}>
+        <p>Будут удалены все заявки клиентов и их история. Вернуть их будет нельзя.</p>
+        {deleteError ? <Notice tone="error">{deleteError}</Notice> : null}
+      </Modal>
     </main>
   );
 }

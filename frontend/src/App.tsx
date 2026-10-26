@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { DemoClient } from './api/client';
+import { rememberBankClient } from './app/bankClient';
 import { ClientHeader } from './components/ClientHeader';
 import { ApplicantPage } from './pages/ApplicantPage';
 import { ApplicationPage } from './pages/ApplicationPage';
@@ -28,6 +29,8 @@ export function App() {
 
   function start() { setDemo(null); navigate('/apply'); }
   function selectDemo(client: DemoClient) { setDemo(client); navigate('/apply'); }
+  // Клиент банка: анкету пропускаем — заявка уже создана по данным из профиля.
+  function bankLogin(applicationId: string, inn: string) { rememberBankClient(applicationId, inn); setDemo(null); navigate(`/applications/${encodeURIComponent(applicationId)}`); }
   const applicationMatch = path.match(/^\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i);
   const staffMatch = path.match(/^\/staff\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i);
   const staffPreview = path === '/preview/staff' || path === '/preview/staff/application';
@@ -51,7 +54,7 @@ export function App() {
     <div className="client-app">
       <ClientHeader onHome={() => navigate('/')} onStaff={() => navigate('/staff')} />
       {preview ? <PreviewPage variant={path === '/preview/statement' ? 'statement' : path === '/preview/goals' ? 'goals' : path === '/preview/goals/new-business' ? 'new-business' : path === '/preview/questions' ? 'questions' : path === '/preview/estimate' ? 'estimate' : path === '/preview/status' ? 'status' : path === '/preview/offers' ? 'offers' : path === '/preview/info-request' ? 'info-request' : path === '/preview/rejection' ? 'rejection' : path === '/preview/contract' ? 'contract' : path === '/preview/after-issue' ? 'after-issue' : 'index'} /> : null}
-      {path === '/' ? <HomePage onStart={start} onSelectDemo={selectDemo} /> : null}
+      {path === '/' ? <HomePage onStart={start} onSelectDemo={selectDemo} onBankLogin={bankLogin} /> : null}
       {path === '/apply' ? <ApplicantPage key={demo ? `${demo.passport.number}-${demo.inn ?? ''}` : 'empty'} demo={demo} onBack={() => navigate('/')} onCreated={(id) => { setDemo(null); navigate(`/applications/${encodeURIComponent(id)}`); }} /> : null}
       {applicationMatch ? <ApplicationPage id={decodeURIComponent(applicationMatch[1])} onHome={() => navigate('/')} /> : null}
       {path !== '/' && path !== '/apply' && path !== '/staff' && !applicationMatch && !preview ? <main className="client-content coming-soon"><h1>Страница не найдена</h1><button className="back-link" onClick={() => navigate('/')}>Вернуться на главную</button></main> : null}
