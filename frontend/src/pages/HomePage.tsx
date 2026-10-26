@@ -65,7 +65,7 @@ export function HomePage({ onStart, onSelectDemo }: Props) {
           <div className="demo-grid">
             {clients.map((client, index) => (
               <article className="demo-card" key={`${client.inn ?? 'no-inn'}-${index}`}>
-                <div className="demo-card__top"><span className="demo-card__number">0{index + 1}</span><span className="demo-card__tag">Тестовые данные</span></div>
+                <div className="demo-card__top"><span className="demo-card__number">{String(index + 1).padStart(2, '0')}</span><span className="demo-card__tag">Тестовые данные</span></div>
                 <h3>{client.businessName || `${client.passport.lastName} ${client.passport.firstName}`}</h3>
                 <p>{client.scenario}</p>
                 <p className="demo-card__details"><strong>Паспорт:</strong> {client.passport.series} {client.passport.number}<br /><strong>ИНН:</strong> {client.inn ?? 'не указан'}</p>
