@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { api, ApiError } from '../api/client';
 import type { CreateApplicationRequest, DemoClient } from '../api/client';
@@ -45,6 +45,13 @@ export function ApplicantPage({ demo, onBack, onCreated }: Props) {
   const [serverError, setServerError] = useState('');
   const [serverErrorCode, setServerErrorCode] = useState<string | null>(null);
   const [existing, setExisting] = useState<{ id: string; createdAt?: string } | null>(null);
+  const existingRef = useRef<HTMLElement | null>(null);
+
+  // Сообщение об уже открытой заявке стоит вверху страницы, а кнопка «Продолжить» — внизу формы.
+  // Без прокрутки кажется, что кнопка не сработала, поэтому подводим клиента к сообщению сами.
+  useEffect(() => {
+    if (existing) existingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [existing]);
 
   type PassportField = keyof CreateApplicationRequest['passport'];
   function updatePassport(field: PassportField, value: string) {
@@ -111,7 +118,7 @@ export function ApplicantPage({ demo, onBack, onCreated }: Props) {
       <button type="button" className="back-link" onClick={onBack}>← Вернуться на главную</button>
       <div className="apply-page__intro"><p className="eyebrow">Шаг 1 · Знакомство</p><h1>Расскажите немного о себе</h1><p>Для начала понадобится паспорт и ИНН. Никаких проверок без вашего согласия не запускаем.</p></div>
       <div className="apply-steps"><Stepper steps={STEPS} activeStepId="data" /></div>
-      {existing ? <section className="application-card__body" aria-label="Существующая заявка"><Notice tone="info">У вас есть заявка от {existing.createdAt ? new Date(existing.createdAt).toLocaleDateString('ru-RU') : 'ранее'}. Продолжить?</Notice><Button onClick={() => onCreated(existing.id)}>Продолжить заявку</Button></section> : null}
+      {existing ? <section ref={existingRef} className="application-card__body" aria-label="Существующая заявка"><Notice tone="info">У вас есть заявка от {existing.createdAt ? new Date(existing.createdAt).toLocaleDateString('ru-RU') : 'ранее'}. Продолжить?</Notice><Button onClick={() => onCreated(existing.id)}>Продолжить заявку</Button></section> : null}
       {demo ? <Notice tone="success">Данные тестового клиента подставлены. Перед отправкой можно изменить любое поле.</Notice> : null}
       <div className="apply-layout">
         <form onSubmit={handleSubmit} className="apply-form" noValidate>
@@ -146,3 +153,4 @@ export function ApplicantPage({ demo, onBack, onCreated }: Props) {
     </main>
   );
 }
+
