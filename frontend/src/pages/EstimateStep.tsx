@@ -116,7 +116,7 @@ export function EstimateStep({ application, preview = false, onUpdated }: Props)
             <label className="estimate-item__toggle"><input type="checkbox" checked={row.excluded} onChange={(e) => { setDraft((prev) => ({ ...prev, [item.id]: { ...row, excluded: e.target.checked } })); setMessage(''); }} />Исключить из сметы</label></div>
         </div>;
       })}</div>
-      <div className="estimate-total"><span>{preview ? 'Итого в примере' : changed ? 'Итого до ваших изменений' : 'Итого по смете'}</span><strong>{rubles(preview ? previewTotal : estimate.total)}</strong></div>
+      <div className="estimate-total"><span>{preview ? 'Итого в примере' : changed ? 'Итого с учётом правок (пока не сохранено)' : 'Итого по смете'}</span><strong>{rubles(preview || changed ? previewTotal : estimate.total)}</strong></div>
       {changed && !preview ? <Notice tone="info">Есть несохранённые изменения. Нажмите «Сохранить изменения» — смета пересчитается.</Notice> : null}
       {estimate.startSmallerSuggested ? <Notice tone="info">По данным расчёта может быть безопаснее начать с меньшего масштаба. Можно проверить статьи сметы перед отправкой.</Notice> : null}
       {message ? <Notice tone="success">{message}</Notice> : null}
@@ -126,3 +126,4 @@ export function EstimateStep({ application, preview = false, onUpdated }: Props)
     </> : null}
   </section>;
 }
+
