@@ -21,6 +21,11 @@ export function DialogStep({ application, onSaved, onUpdated }: {
   const [formNote, setFormNote] = useState('');
   const [fresh, setFresh] = useState(false);       // «Заполнить заново»: форма без ответов из чата
   const [editing, setEditing] = useState(false);   // «Исправить»: в сводке снова показываем поле ввода
+  const [customAnswer, setCustomAnswer] = useState(false); // «Ответить своими словами»: раскрыть поле рядом с быстрыми кнопками
+
+  // Если есть быстрые варианты ответа, не загромождаем экран ещё и полем ввода —
+  // оно появляется только по запросу. Сбрасываем при каждом новом сообщении от помощника.
+  useEffect(() => { setCustomAnswer(false); }, [state?.messages.length]);
 
   useEffect(() => {
     let active = true;
@@ -122,10 +127,16 @@ export function DialogStep({ application, onSaved, onUpdated }: {
       <Button variant="secondary" loading={working} onClick={() => void handoff()}>Передать сотруднику</Button>
     </div> : null}
     {state?.state === 'ASKING' || (state?.state === 'SUMMARY' && editing) ? <>
-      {state.quickReplies?.length ? <div className="goal-question__options">{state.quickReplies.map((reply, index) => <Button key={`${reply}-${index}`} variant="secondary" disabled={working} onClick={() => void send(reply)}>{reply}</Button>)}</div> : null}
-      <form onSubmit={(event) => { event.preventDefault(); void send(input); }}><label className="goal-question__textarea"><span>Ваш ответ</span><textarea rows={3} value={input} maxLength={2000} onChange={(event) => setInput(event.target.value)} placeholder="Напишите своими словами…" /></label><Button type="submit" loading={working} disabled={!input.trim()}>Отправить ответ</Button></form>
+      {state.quickReplies?.length ? <>
+        <div className="goal-question__options">{state.quickReplies.map((reply, index) => <Button key={`${reply}-${index}`} variant="secondary" disabled={working} onClick={() => void send(reply)}>{reply}</Button>)}</div>
+        {!customAnswer ? <div style={{ marginTop: 10 }}><Button variant="quiet" size="small" disabled={working} onClick={() => setCustomAnswer(true)}>Ответить своими словами</Button></div> : null}
+      </> : null}
+      {!state.quickReplies?.length || customAnswer ? (
+        <form onSubmit={(event) => { event.preventDefault(); void send(input); }}><label className="goal-question__textarea"><span>Ваш ответ</span><textarea rows={3} value={input} maxLength={2000} onChange={(event) => setInput(event.target.value)} placeholder="Напишите своими словами…" /></label><Button type="submit" loading={working} disabled={!input.trim()}>Отправить ответ</Button></form>
+      ) : null}
     </> : null}
     {error ? <Notice tone="error">{error}</Notice> : null}
     <div className="flow-step__actions"><Button variant="secondary" onClick={() => setMode('form')}>Перейти к обычной форме</Button></div>
   </section>;
 }
+
