@@ -1,5 +1,5 @@
 import type { components } from './schema';
-
+ 
 // Все поля берём исключительно из файла schema.d.ts,
 // автоматически сгенерированного из openapi.yaml.
 export type Application = components['schemas']['Application'];
@@ -38,15 +38,15 @@ export type DialogState = components['schemas']['DialogState'];
 export type QuestionSets = components['schemas']['QuestionSets'];
 export type DialogInput = paths['/applications/{id}/dialog']['post']['requestBody']['content']['application/json'];
 export type HandoffInput = paths['/applications/{id}/handoff']['post']['requestBody']['content']['application/json'];
-
+ 
 type ApiErrorResponse = components['schemas']['Error'];
-
+ 
 export class ApiError extends Error {
   readonly code: ApiErrorCode | null;
   readonly status: number;
   /** details из ответа сервера, например details.problems при VALIDATION_ERROR. */
   readonly details: Record<string, unknown> | null;
-
+ 
   constructor(message: string, status: number, code: ApiErrorCode | null = null, details: Record<string, unknown> | null = null) {
     super(message);
     this.name = 'ApiError';
@@ -55,7 +55,7 @@ export class ApiError extends Error {
     this.details = details;
   }
 }
-
+ 
 /**
  * Текст ошибки для клиента: message сервера и, если есть, details.problems —
  * какой ответ не подошёл и почему. questionText(id) подставляет текст вопроса вместо id.
@@ -74,7 +74,7 @@ export function errorText(error: unknown, fallback: string, questionText?: (ques
   });
   return lines.length ? `${error.message}: ${lines.join('; ')}.` : error.message;
 }
-
+ 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
@@ -88,7 +88,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     throw new ApiError('Не удалось связаться с сервером. Проверьте подключение и попробуйте ещё раз.', 0);
   }
-
+ 
   if (!response.ok) {
     // Текст берём из message, а решения в интерфейсе — из code.
     let serverError: ApiErrorResponse | null = null;
@@ -107,7 +107,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   return (await response.json()) as T;
 }
-
+ 
 export const api = {
   listStaffApplications: (filters: { status?: ApplicationStatus; zone?: Zone } = {}) => {
     const query = new URLSearchParams();
@@ -123,6 +123,8 @@ export const api = {
     }),
   getHealth: () => request<HealthResponse>('/health'),
   demoClients: () => request<DemoClient[]>('/demo/clients'),
+  // Сбрасывает все тестовые заявки в базе — только для повторной демонстрации жюри.
+  resetDemo: () => request<{ status: string; deletedApplications: number }>('/demo/reset', { method: 'POST' }),
   createApplication: async (body: CreateApplicationRequest): Promise<{ application: Application; existing: boolean }> => {
     // HTTP 200 = открытая ранее заявка; HTTP 201 = новая. Статус HTTP здесь важен.
     const path = '/api/applications';
